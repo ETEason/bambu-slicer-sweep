@@ -74,8 +74,16 @@ MESSAGES: dict[str, tuple[str, str]] = {
     "step_positive": ("步長必須大於 0", "the step must be greater than 0"),
     "range_order": ("範圍結束值不能小於起始值", "the range end must not be less than the start"),
     "density_bounds": ("密度必須在 0～100 之間：{value}", "density must be between 0 and 100: {value}"),
-    "object_override": ("3MF 中有物件／零件層級的 {key} 設定，命令列覆蓋可能不會套用到該物件",
-                        "the 3MF has a per-object/part {key}; the command-line override may not apply to it"),
+    "override_head": ("模型中有物件已單獨指定以下參數，掃描的值可能不會套用到這些物件：",
+                      "some objects in the model have their own value for these settings, so the swept value "
+                      "may not apply to them:"),
+    "override_object": ("  {name}（物件 id {id}）：{key} = {value}", "  {name} (object id {id}): {key} = {value}"),
+    "override_part": ("  {name}（物件 id {id}）的零件 {part}：{key} = {value}",
+                      "  {name} (object id {id}), part {part}: {key} = {value}"),
+    "override_tail": ("這些物件可能維持自己的設定，掃描結果會失真，因此不進行切片。"
+                      "請先在 Bambu Studio 的物件清單中移除這些物件的個別設定，再重新執行。",
+                      "Those objects may keep their own settings and distort the results, so nothing was sliced. "
+                      "Remove the per-object settings in the Bambu Studio object list, then run again."),
     "not_applied": ("設定沒有套用（G-code 中為 {pattern} {density}）",
                     "setting was not applied (G-code has {pattern} {density})"),
     "multi_filament": ("3MF 有多個耗材，各走線類型重量一律以第 1 個耗材的密度與線徑換算",
@@ -130,6 +138,7 @@ def get_lang() -> str:
     return _lang
 
 
-def t(key: str, **kw) -> str:
-    text = MESSAGES[key][LANGS.index(_lang)]
+def t(msg_id: str, /, **kw) -> str:
+    # Positional-only, so a placeholder may itself be called "msg_id", "key", ...
+    text = MESSAGES[msg_id][LANGS.index(_lang)]
     return text.format(**kw) if kw else text

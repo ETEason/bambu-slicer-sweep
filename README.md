@@ -92,7 +92,7 @@ python -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout
 ```
 
 The output folder contains `sweep.csv` (one row per slice) and `summary.txt` (the terminal summary table); with `--keep` it also holds each `.gcode.3mf`.
-Exit code is 0 when every slice succeeds, 1 when any slice fails, 2 for invalid arguments.
+Exit code is 0 when every slice succeeds, 1 when any slice fails, 2 for invalid arguments or when objects have their own value for a swept setting (nothing is sliced then).
 
 The full guide (density syntax, pattern names, decimal densities, error messages) is in **[docs/usage.md](docs/usage.md)**.
 
@@ -182,7 +182,7 @@ Each document also has a Traditional Chinese version (`*.zh-TW.md`).
 - Windows only (uses `taskkill` and Windows process groups); verified only with Bambu Studio 2.7.1.62
 - Option names must be Bambu setting keys; for an invalid name or value the slicer only returns exit code -2, with no explanation
 - Only `sparse_infill_density` and `sparse_infill_pattern` are checked after slicing; other `--set` values are not read back
-- If the 3MF has per-object or per-part infill settings, the command-line override may not apply to those objects (the tool warns)
+- If objects or parts on the plate have their own value for a swept or `--set` setting, the command-line override may not apply to them; the tool lists those objects and stops without slicing
 - Multi-filament 3MF: per-line-type weights all use the first filament's density and diameter (the total is still the slicer's correct value)
 - Times are the slicer's estimates, same as the GUI, not actual print times
 - In about 2-5% of slices the slicer exits normally but Windows cannot tear its process down (probably the graphics driver). Results are unaffected, but that slice's temp folder cannot be deleted until you restart; the tool tells you when this happens. See the [design notes](docs/design.md#a-slicer-that-exits-but-cannot-be-cleaned-up)

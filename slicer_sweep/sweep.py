@@ -120,20 +120,64 @@ class RunResult:
         return row
 
 
-def model_info(model: Path) -> tuple[list[int], str, list[str]]:
-    """(plate ids, embedded sparse_infill_pattern, object-level override warnings)."""
+def _model_cfg(model: Path) -> str:
+    with zipfile.ZipFile(model) as z:
+        if "Metadata/model_settings.config" not in z.namelist():
+            return ""
+        return z.read("Metadata/model_settings.config").decode("utf-8", "replace")
+
+
+def model_info(model: Path) -> tuple[list[int], str]:
+    """(plate ids, embedded sparse_infill_pattern)."""
     import json
     with zipfile.ZipFile(model) as z:
-        names = set(z.namelist())
         settings = json.loads(z.read("Metadata/project_settings.config"))
-        model_cfg = (z.read("Metadata/model_settings.config").decode("utf-8", "replace")
-                     if "Metadata/model_settings.config" in names else "")
-    plates = [int(p) for p in re.findall(r'key="plater_id" value="(\d+)"', model_cfg)] or [1]
-    warnings = []
-    for key in ("sparse_infill_density", "sparse_infill_pattern"):
-        if re.search(rf'key="{key}"', model_cfg):
-            warnings.append(t("object_override", key=key))
-    return plates, str(settings.get("sparse_infill_pattern", "")), warnings
+    plates = [int(p) for p in re.findall(r'key="plater_id" value="(\d+)"', _model_cfg(model))] or [1]
+    return plates, str(settings.get("sparse_infill_pattern", ""))
+
+
+@dataclass
+class ObjectOverride:
+    object_name: str
+    object_id: str
+    part_name: str | None  # None when the setting is on the whole object
+    key: str
+    value: str
+
+
+def object_overrides(model: Path, plate: int, keys: set[str]) -> list[ObjectOverride]:
+    """Settings in ``keys`` that objects (or their parts) on ``plate`` set for themselves.
+
+    Bambu Studio stores per-object settings as <metadata key=... value=...> on the
+    <object> / <part> elements of Metadata/model_settings.config.
+    """
+    import xml.etree.ElementTree as ET
+    text = _model_cfg(model)
+    if not text:
+        return []
+    root = ET.fromstring(text)
+
+    def meta(el, key):
+        for m in el.findall("metadata"):
+            if m.get("key") == key:
+                return m.get("value")
+        return None
+
+    on_plate: set[str] | None = None
+    for p in root.findall("plate"):
+        if meta(p, "plater_id") == str(plate):
+            on_plate = {meta(mi, "object_id") for mi in p.findall("model_instance")}
+    found = []
+    for obj in root.findall("object"):
+        oid = obj.get("id", "")
+        if on_plate is not None and oid not in on_plate:
+            continue
+        name = meta(obj, "name") or oid
+        for el, part in [(obj, None)] + [(p, meta(p, "name") or p.get("id", "")) for p in obj.findall("part")]:
+            for m in el.findall("metadata"):
+                if m.get("key") in keys:
+                    found.append(ObjectOverride(name, oid, part, m.get("key"), m.get("value", "")))
+    return found
 
 
 def run_sweep(model: Path, plate: int, densities: list[Decimal], patterns: list[str] | None,
@@ -148,7 +192,7 @@ def run_sweep(model: Path, plate: int, densities: list[Decimal], patterns: list[
     model_copy = work / "model.3mf"
     shutil.copyfile(model, model_copy)
 
-    _, embedded_pattern, _ = model_info(model)
+    _, embedded_pattern = model_info(model)
     combos = [(p, d) for p in (patterns or [None]) for d in densities]
     results: list[RunResult] = []
     try:

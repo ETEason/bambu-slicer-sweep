@@ -10,7 +10,8 @@ from pathlib import Path
 
 from .bambu import DEFAULT_EXE, DEFAULT_TIMEOUT_S
 from .i18n import LANGS, detect_lang, set_lang, t
-from .sweep import RunResult, best, density_list, fmt_num, model_info, run_sweep, write_csv
+from .sweep import (ObjectOverride, RunResult, best, density_list, fmt_num, model_info,
+                    object_overrides, run_sweep, write_csv)
 
 
 def _lang_parser() -> argparse.ArgumentParser:
@@ -90,6 +91,19 @@ def summary(results: list[RunResult]) -> str:
     return "\n".join(lines)
 
 
+def override_warning(items: list[ObjectOverride]) -> str:
+    """Multi-line warning listing objects that set swept/pinned settings themselves."""
+    if not items:
+        return ""
+    lines = [t("warning", text=t("override_head"))]
+    for o in items:
+        msg = "override_object" if o.part_name is None else "override_part"
+        lines.append(t(msg, name=o.object_name, id=o.object_id, part=o.part_name, key=o.key,
+                       value=o.value))
+    lines.append(t("override_tail"))
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         try:
@@ -125,12 +139,17 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     patterns = [p.strip() for p in args.patterns.split(",") if p.strip()] if args.patterns else None
 
-    plates, embedded_pattern, warnings = model_info(args.model)
+    plates, embedded_pattern = model_info(args.model)
     if args.plate not in plates:
         print(t("no_plate", plate=args.plate, plates=", ".join(map(str, plates))), file=sys.stderr)
         return 2
-    for w in warnings:
-        print(t("warning", text=w), file=sys.stderr)
+    # Objects with their own value would ignore the sweep and make the numbers misleading,
+    # so stop before slicing anything.
+    keys = {"sparse_infill_density", "sparse_infill_pattern"} | {k.replace("-", "_") for k in extra}
+    overridden = override_warning(object_overrides(args.model, args.plate, keys))
+    if overridden:
+        print(overridden, file=sys.stderr)
+        return 2
 
     out_dir = args.out_dir or Path("results") / f"{args.model.stem}_{datetime.now():%Y%m%d-%H%M%S}"
     total = len(densities) * len(patterns or [None])

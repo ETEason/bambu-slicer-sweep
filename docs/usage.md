@@ -104,7 +104,7 @@ The output folder contains:
 |---|---|
 | `0` | Every slice succeeded |
 | `1` | At least one slice failed (the other results are still in the CSV) |
-| `2` | Invalid arguments, file not found or no such plate; nothing was sliced |
+| `2` | Invalid arguments, file not found, no such plate, or objects with their own value for a swept setting; nothing was sliced |
 | `130` | Ctrl+C (the running slicer process is stopped) |
 
 ## Common messages
@@ -118,4 +118,4 @@ The output folder contains:
 | `warning: the slicer exited normally but Windows could not tear its process down …` | Happens in about 2–5% of slices; the result is still valid. See the [design notes](design.md#a-slicer-that-exits-but-cannot-be-cleaned-up) |
 | `warning: temp folder … could not be deleted` | The process above keeps its temp folder; it can be deleted after a restart |
 | `warning: the slicer did not exit 30 s after writing its results and was stopped` | Fallback mechanism; the result is still valid |
-| `warning: the 3MF has a per-object/part …` | Some objects have their own infill settings in the GUI; the command-line override may not apply to them |
+| `warning: some objects in the model have their own value for these settings…` | The listed objects have their own value in the GUI for a swept (or `--set`) setting, so the swept value may not apply to them and the results would be misleading; the tool exits without slicing (code 2). Remove the per-object settings in the Bambu Studio object list, then run again |
