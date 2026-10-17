@@ -8,6 +8,8 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .i18n import t
+
 DEFAULT_EXE = Path(r"C:\Program Files\Bambu Studio\bambu-studio.exe")
 DEFAULT_TIMEOUT_S = 300
 # Seconds to let the slicer exit on its own after it has written result.json.
@@ -100,15 +102,15 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
             now = time.monotonic()
             if now >= deadline:
                 exited = _kill_tree(proc)
-                raise SliceError(f"逾時 {timeout_s:g} 秒，" + ("已結束切片程序" if exited else
-                                 f"且切片程序 PID {proc.pid} 沒有在 {KILL_WAIT_S} 秒內結束"))
+                raise SliceError(t("timeout_killed", timeout=timeout_s) if exited else
+                                 t("timeout_stuck", timeout=timeout_s, pid=proc.pid, wait=KILL_WAIT_S))
             if result_seen_at is None:
                 if _read_result(result_path) is not None:
                     result_seen_at = now
             elif now - result_seen_at >= EXIT_GRACE_S:
                 exited = _kill_tree(proc)
-                warnings.append(f"切片程序寫出結果後 {EXIT_GRACE_S} 秒仍未結束，已強制結束"
-                                + ("" if exited else f"（PID {proc.pid} 未確認結束）"))
+                warnings.append(t("exit_hang", grace=EXIT_GRACE_S)
+                                + ("" if exited else t("exit_hang_unconfirmed", pid=proc.pid)))
                 rc = 0  # judged by result.json and the archive below
                 break
             time.sleep(POLL_S)
@@ -122,10 +124,11 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
     if rc != 0 or result.get("return_code", 0) != 0:
         msg = result.get("error_string", "")
         code = rc if rc < 2**31 else rc - 2**32
-        hint = "（通常是命令列參數名稱或設定值無效）" if code == -2 and not result else ""
-        raise SliceError(f"切片失敗：exit code {code}" + (f"，{msg}" if msg else "") + hint)
+        hint = t("hint_bad_option") if code == -2 and not result else ""
+        raise SliceError(t("slice_failed", code=code) + (t("slice_failed_msg", msg=msg) if msg else "")
+                         + hint)
     if warnings and (not result or not _valid_zip(out)):
-        raise SliceError(warnings[0] + "，且輸出不完整")
+        raise SliceError(warnings[0] + t("output_incomplete"))
     if not out.exists():
-        raise SliceError("切片程序結束但沒有產生 gcode.3mf")
+        raise SliceError(t("no_output"))
     return SliceRun(out, result, elapsed, warnings)

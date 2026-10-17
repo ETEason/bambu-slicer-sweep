@@ -74,6 +74,7 @@ python -m slicer_sweep <3MF 路徑> <密度指定> [選項]
 | `--keep` | 不保留 | 保留每次切片的 `.gcode.3mf` |
 | `--timeout 600` | `300` | 每次切片的逾時秒數 |
 | `--exe 路徑` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio 執行檔 |
+| `--lang en` | 依 Windows 顯示語言 | 輸出語言：`zh-TW` 或 `en` |
 
 常見用法：
 
@@ -153,6 +154,7 @@ slicer_sweep/
   bambu.py         執行 bambu-studio.exe（逾時、結束程序樹）
   sliced.py        讀取 gcode.3mf：標頭、設定、耗材密度
   gcode_stats.py   依 ; FEATURE: 加總各走線類型的擠出長度
+  i18n.py          中英文訊息
 tests/             單元測試
 tools/
   verify_gui.py       CLI 與 GUI 數據對照

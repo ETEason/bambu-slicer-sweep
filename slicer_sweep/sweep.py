@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 from .bambu import DEFAULT_EXE, DEFAULT_TIMEOUT_S, SliceError, slice_plate
+from .i18n import t
 from .sliced import read_sliced_3mf
 
 # CSV column -> GUI "Line type" name (after GUI aliasing).
@@ -34,9 +35,9 @@ def parse_decimal(text: str) -> Decimal:
     try:
         d = Decimal(text.strip().rstrip("%"))
     except InvalidOperation:
-        raise ValueError(f"不是數字：{text!r}") from None
+        raise ValueError(t("not_number", text=text)) from None
     if not d.is_finite():
-        raise ValueError(f"不是數字：{text!r}")
+        raise ValueError(t("not_number", text=text))
     return d
 
 
@@ -49,16 +50,16 @@ def density_list(values: str | None = None, start: str | None = None, end: str |
     if start is not None:
         s, e, st = parse_decimal(start), parse_decimal(end), parse_decimal(step)
         if st <= 0:
-            raise ValueError("步長必須大於 0")
+            raise ValueError(t("step_positive"))
         if e < s:
-            raise ValueError("範圍結束值不能小於起始值")
+            raise ValueError(t("range_order"))
         n = 0
         while s + n * st <= e:
             out.append(s + n * st)
             n += 1
     for d in out:
         if not 0 <= d <= 100:
-            raise ValueError(f"密度必須在 0～100 之間：{fmt_num(d)}")
+            raise ValueError(t("density_bounds", value=fmt_num(d)))
     # Keep first-seen order, drop duplicates (e.g. 10 and 10.0).
     seen, uniq = set(), []
     for d in out:
@@ -131,7 +132,7 @@ def model_info(model: Path) -> tuple[list[int], str, list[str]]:
     warnings = []
     for key in ("sparse_infill_density", "sparse_infill_pattern"):
         if re.search(rf'key="{key}"', model_cfg):
-            warnings.append(f"3MF 中有物件／零件層級的 {key} 設定，命令列覆蓋可能不會套用到該物件")
+            warnings.append(t("object_override", key=key))
     return plates, str(settings.get("sparse_infill_pattern", "")), warnings
 
 
@@ -166,7 +167,7 @@ def run_sweep(model: Path, plate: int, densities: list[Decimal], patterns: list[
                 applied_d = s.config.get("sparse_infill_density", "")
                 applied_p = s.config.get("sparse_infill_pattern", "")
                 if parse_decimal(applied_d) != density or (pattern and applied_p != pattern):
-                    raise SliceError(f"設定沒有套用（G-code 中為 {applied_p} {applied_d}）")
+                    raise SliceError(t("not_applied", pattern=applied_p, density=applied_d))
                 r.pattern = applied_p or r.pattern
                 r.total_g = s.total_g
                 fg = s.feature_g

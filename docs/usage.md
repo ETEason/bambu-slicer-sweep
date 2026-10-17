@@ -70,6 +70,7 @@ python -m slicer_sweep "input\model.3mf" -d 10,11 --set wall_loops=3 --set top_s
 | `--keep` | 不保留 | 保留每次切片的 `.gcode.3mf`，可以用 Bambu Studio 開啟檢查或直接列印 |
 | `--timeout 秒數` | `300` | 每次切片的時間上限，超過就結束該次切片並記為失敗 |
 | `--exe 路徑` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio 安裝在其他位置時使用 |
+| `--lang zh-TW` / `--lang en` | 依 Windows 顯示語言（中文 → `zh-TW`，其他 → `en`） | 終端機訊息、摘要表與 `summary.txt` 的語言；CSV 欄位名稱一律是英文 |
 
 ## 執行過程與輸出
 

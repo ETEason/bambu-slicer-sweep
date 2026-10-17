@@ -8,6 +8,7 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .i18n import t
 from .gcode_stats import mm_to_grams, parse_feature_lengths
 
 _HEADER_RE = {
@@ -59,7 +60,7 @@ def read_sliced_3mf(path: Path, plate: int, result_json: dict | None = None,
     densities = settings.get("filament_density", [])
     diameters = settings.get("filament_diameter", [])
     if isinstance(densities, list) and len(densities) > 1:
-        warnings.append("3MF 有多個耗材，各走線類型重量一律以第 1 個耗材的密度與線徑換算")
+        warnings.append(t("multi_filament"))
     density = _first_value(densities)
     diameter = _first_value(diameters)
 
@@ -94,7 +95,7 @@ def read_sliced_3mf(path: Path, plate: int, result_json: dict | None = None,
 
     total_len = float(header.get("length_mm", usage.total_mm))
     if abs(usage.total_mm - total_len) > max(1.0, 1e-4 * total_len):
-        warnings.append(f"各走線類型加總長度 {usage.total_mm:.2f} mm 與切片器總長 {total_len:.2f} mm 不一致")
+        warnings.append(t("length_mismatch", sum=usage.total_mm, total=total_len))
 
     return SliceStats(
         total_g=float(header.get("weight_g", mm_to_grams(usage.total_mm, diameter, density))),

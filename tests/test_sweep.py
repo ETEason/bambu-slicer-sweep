@@ -1,7 +1,9 @@
+import string
 import unittest
 from decimal import Decimal as D
 
 from slicer_sweep.cli import summary
+from slicer_sweep.i18n import MESSAGES, set_lang
 from slicer_sweep.sweep import RunResult, best, density_list, fmt_num
 
 
@@ -42,11 +44,31 @@ class BestTest(unittest.TestCase):
         self.assertEqual([fmt_num(r.density) for r in best(rs, "total_g")], ["6", "7"])
         self.assertEqual([fmt_num(r.density) for r in best(rs, "total_time_s")], ["6"])
 
+    def tearDown(self):
+        set_lang("zh-TW")
+
     def test_summary_marks_and_sum(self):
+        set_lang("zh-TW")
         text = summary([run(5, 110.0, 100, 3.0, 4.5), run(6, 100.0, 90)])
         self.assertIn("7.50", text)          # sparse + bridge
         self.assertIn("★最少用料", text)
         self.assertIn("總用料最少：6%", text)
+
+    def test_summary_english(self):
+        set_lang("en")
+        text = summary([run(5, 110.0, 100), run(6, 100.0, 90)])
+        self.assertIn("Sparse+Bridge g", text)
+        self.assertIn("★least filament", text)
+        self.assertIn("Least filament: 6% (100.00 g, 90s)", text)
+        self.assertNotRegex(text, r"[一-鿿]")
+
+
+class MessagesTest(unittest.TestCase):
+    def test_both_languages_use_the_same_placeholders(self):
+        fields = lambda s: sorted(f for _, f, _, _ in string.Formatter().parse(s) if f)  # noqa: E731
+        for key, (zh, en) in MESSAGES.items():
+            self.assertEqual(fields(zh), fields(en), key)
+            self.assertNotRegex(en, r"[一-鿿]", key)
 
 
 if __name__ == "__main__":

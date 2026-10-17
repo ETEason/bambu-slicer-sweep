@@ -17,27 +17,27 @@ Slice a 3MF with the Bambu Studio CLI across many sparse infill densities (and p
 </div>
 
 ```text
-> python -m slicer_sweep "input/model.3mf" --range 5 15 1
+> python -m slicer_sweep "input/model.3mf" --range 5 15 1 --lang en
 
-密度  總用料 g  稀疏填充 g  橋接 g  稀疏+橋接 g  內部實心 g      總時間  標記
-----  --------  ----------  ------  -----------  ----------  ----------  -------------------
-5%      114.67        6.64   45.48        52.12       31.69   4h 31m 1s
-6%      117.83        7.79   47.65        55.44       31.53  4h 37m 13s
-7%      106.65        9.35   35.03        44.39       31.39  4h 17m 11s
-8%      105.17       10.86   32.34        43.20       31.10  4h 15m 27s
-9%      113.27       11.93   39.44        51.37       31.03  4h 30m 33s
-10%     106.74       13.56   29.85        43.41       32.46  4h 16m 23s
-11%     102.45       15.29   25.06        40.35       31.24  4h 10m 23s  ★最少用料 ⏱最短時間
-12%     110.71       16.20   32.45        48.64       31.20  4h 25m 48s
-13%     105.31       17.81   25.64        43.45       31.00  4h 15m 40s
-14%     106.15       18.92   25.27        44.19       31.10  4h 17m 30s
-15%     106.75       20.41   24.28        44.69       31.19   4h 20m 9s
+Density  Total g  Sparse g  Bridge g  Sparse+Bridge g  Int. solid g  Total time  Marks
+-------  -------  --------  --------  ---------------  ------------  ----------  ------------------------
+5%        114.67      6.64     45.48            52.12         31.69   4h 31m 1s
+6%        117.83      7.79     47.65            55.44         31.53  4h 37m 13s
+7%        106.65      9.35     35.03            44.39         31.39  4h 17m 11s
+8%        105.17     10.86     32.34            43.20         31.10  4h 15m 27s
+9%        113.27     11.93     39.44            51.37         31.03  4h 30m 33s
+10%       106.74     13.56     29.85            43.41         32.46  4h 16m 23s
+11%       102.45     15.29     25.06            40.35         31.24  4h 10m 23s  ★least filament ⏱fastest
+12%       110.71     16.20     32.45            48.64         31.20  4h 25m 48s
+13%       105.31     17.81     25.64            43.45         31.00  4h 15m 40s
+14%       106.15     18.92     25.27            44.19         31.10  4h 17m 30s
+15%       106.75     20.41     24.28            44.69         31.19   4h 20m 9s
 
-總用料最少：11%（102.45 g，4h 10m 23s）
-時間最短：11%（102.45 g，4h 10m 23s）
+Least filament: 11% (102.45 g, 4h 10m 23s)
+Shortest time: 11% (102.45 g, 4h 10m 23s)
 ```
 
-The terminal output is in Traditional Chinese. Columns: density, total filament, sparse infill, bridge, sparse + bridge, internal solid infill, total time, marks (★ least filament, ⏱ shortest time). CSV column names are in English.
+Messages are in English or Traditional Chinese, chosen from the Windows display language; force one with `--lang en` or `--lang zh-TW`.
 
 ## ✨ Features
 
@@ -76,6 +76,7 @@ python -m slicer_sweep <3MF path> <densities> [options]
 | `--keep` | off | Keep the sliced `.gcode.3mf` of every run |
 | `--timeout 600` | `300` | Timeout per slice, in seconds |
 | `--exe PATH` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio executable |
+| `--lang en` | Windows display language | Output language: `en` or `zh-TW` |
 
 Examples:
 
@@ -155,6 +156,7 @@ slicer_sweep/
   bambu.py         runs bambu-studio.exe (timeout, process-tree kill)
   sliced.py        reads the gcode.3mf: header, settings, filament density
   gcode_stats.py   sums extruded length per ; FEATURE: line type
+  i18n.py          English / Traditional Chinese messages
 tests/             unit tests
 tools/
   verify_gui.py       CLI vs GUI comparison
