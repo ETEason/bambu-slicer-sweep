@@ -149,6 +149,10 @@ def main(argv: list[str] | None = None) -> int:
         print("\n已中斷（切片程序已結束）", file=sys.stderr)
         return 130
 
+    if (out_dir / "_work").exists():
+        print(f"警告：暫存資料夾 {out_dir / '_work'} 無法刪除，可能仍被未完全結束的切片程序佔用；"
+              "重新開機後即可刪除", file=sys.stderr)
+
     csv_path = out_dir / "sweep.csv"
     write_csv(results, csv_path)
     text = summary(results)

@@ -4,7 +4,7 @@
 
 用 Bambu Studio CLI 對 3MF 自動掃描稀疏填充密度（與填充圖案），彙整用料、時間與各走線類型用量，找出最省料的設定。
 
-[設計說明](docs/design.md) · [CLI 與 GUI 數據對照](docs/verification.md) · [葉片掃描結果](results/blade_gyroid_density_5-15/summary.txt)
+[使用說明](docs/usage.md) · [設計說明](docs/design.md) · [CLI 與 GUI 數據對照](docs/verification.md) · [葉片掃描結果](results/blade_gyroid_density_5-15/summary.txt)
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![Bambu Studio](https://img.shields.io/badge/Bambu%20Studio-2.7.1.62-00AE42)
@@ -53,39 +53,43 @@ py -3.14 -m venv .venv
 .venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" --range 5 15 1
 ```
 
-更多用法：
+## 📖 使用方式
 
 ```powershell
-# 指定密度清單（可用小數）
+.venv\Scripts\python.exe -m slicer_sweep <3MF 路徑> <密度指定> [選項]
+```
+
+`<密度指定>` 必填，用 `-d` 或 `-r`（可併用）。其餘都是選項：
+
+| 參數 | 預設 | 說明 |
+|---|---|---|
+| `-d 3,10.5,11` | — | 密度清單（%），逗號分隔，可用小數 |
+| `-r 5 15 1` | — | 密度範圍：起始、結束、步長，**包含結束值** |
+| `-p gyroid,grid` | 3MF 內嵌的圖案 | 填充圖案（Bambu 設定值，例如 `gyroid`、`grid`、`cubic`、`adaptivecubic`、`honeycomb`、`lightning`），每個圖案都跑完所有密度 |
+| `--set wall_loops=3` | — | 所有切片都固定覆蓋的其他設定，可重複 |
+| `--plate 2` | `1` | 盤號 |
+| `-o results\xxx` | `results\<模型名>_<時間>` | 輸出資料夾 |
+| `--keep` | 不保留 | 保留每次切片的 `.gcode.3mf` |
+| `--timeout 600` | `300` | 每次切片的逾時秒數 |
+| `--exe 路徑` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio 執行檔 |
+
+常見用法：
+
+```powershell
+# 指定幾個密度（可用小數）
 .venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" -d 3,10.5,11,13
 
-# 同時掃描三種填充圖案，保留切片後的 gcode.3mf，輸出到指定資料夾
+# 8%～14% × 三種圖案（共 21 次），保留 gcode.3mf，輸出到指定資料夾
 .venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic --keep -o results\patterns
 
-# 第 2 盤，額外固定牆數為 3，逾時改為 10 分鐘
+# 第 2 盤，牆數固定為 3，逾時改為 10 分鐘
 .venv\Scripts\python.exe -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout 600
 ```
 
-輸出寫在 `results\<模型名>_<時間>\`（或 `-o` 指定的資料夾）：`sweep.csv`、`summary.txt`，加 `--keep` 時另有每次的 `.gcode.3mf`。
+輸出資料夾中有 `sweep.csv`（每次切片一列）、`summary.txt`（與終端機相同的摘要表），加 `--keep` 時另有每次的 `.gcode.3mf`。
 全部成功時結束代碼為 0，有任何一次失敗為 1，參數錯誤為 2。
 
-<details>
-<summary>所有參數</summary>
-
-| 參數 | 說明 |
-|---|---|
-| `model` | 輸入的 3MF |
-| `--plate N` | 盤號，從 1 開始，預設 1 |
-| `-d, --densities LIST` | 密度清單（%），逗號分隔 |
-| `-r, --range START END STEP` | 密度範圍，含結束值；可與 `-d` 併用（重複值會去掉） |
-| `-p, --patterns LIST` | 填充圖案，用 Bambu 的設定值（`gyroid`、`grid`、`cubic`、`adaptivecubic`、`honeycomb`、`lightning`…）；未指定時用 3MF 內嵌的圖案 |
-| `--set KEY=VALUE` | 額外固定覆蓋的設定（Bambu 設定鍵，底線或連字號皆可），可重複 |
-| `-o, --out-dir DIR` | 輸出資料夾 |
-| `--keep` | 保留每次切片的 gcode.3mf（預設不保留） |
-| `--timeout SEC` | 每次切片的逾時，預設 300 秒 |
-| `--exe PATH` | `bambu-studio.exe` 的路徑 |
-
-</details>
+完整說明（密度寫法、圖案名稱對照、小數密度注意事項、常見錯誤訊息）見 **[docs/usage.md](docs/usage.md)**。
 
 <details>
 <summary>CSV 欄位說明</summary>
@@ -159,6 +163,7 @@ results/           掃描結果
 
 ## 📚 文件
 
+- [使用說明](docs/usage.md)：所有參數、圖案名稱對照、輸出與錯誤訊息
 - [設計說明](docs/design.md)：為什麼用命令列覆蓋、G-code 怎麼換算、程序管理
 - [CLI 與 GUI 數據對照](docs/verification.md)
 - [Bambu Studio 2.7.1.62 `--help` 輸出](docs/bambu-cli-help.txt)
@@ -171,7 +176,8 @@ results/           掃描結果
 - 若 3MF 中有物件／零件層級的填充設定，命令列覆蓋可能不會套用到該物件（工具會警告）
 - 多耗材的 3MF：各走線類型的重量一律用第 1 個耗材的密度與線徑換算（總用料仍是切片器的正確值）
 - 時間是切片器的估算值，與 GUI 相同，但不等於實際列印時間
-- 切片器偶爾寫完結果後不會結束，該次會多花約 30 秒
+- 切片器偶爾寫完結果後不會結束，該次會多花約 30 秒；這種程序有時無法完全結束，會佔住暫存資料夾直到重新開機
+- 小數密度（例如 10.5%）CLI 會照實使用，但 GUI 中不一定能輸入同樣的值；要列印時請用 `--keep` 保留的 gcode.3mf
 
 ## 授權
 
