@@ -4,3 +4,4 @@ __pycache__/
 work/
 /result.json
 /docs/*.stderr.txt
+*.gcode.3mf

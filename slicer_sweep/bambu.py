@@ -82,8 +82,9 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
         result = json.loads(result_path.read_text(encoding="utf-8"))
     if rc != 0 or result.get("return_code", 0) != 0:
         msg = result.get("error_string", "")
-        raise SliceError(f"切片失敗：exit code {rc if rc < 2**31 else rc - 2**32}"
-                         + (f"，{msg}" if msg else ""))
+        code = rc if rc < 2**31 else rc - 2**32
+        hint = "（通常是命令列參數名稱或設定值無效）" if code == -2 and not result else ""
+        raise SliceError(f"切片失敗：exit code {code}" + (f"，{msg}" if msg else "") + hint)
     if not out.exists():
         raise SliceError("切片程序結束但沒有產生 gcode.3mf")
     return SliceRun(out, result, elapsed)
