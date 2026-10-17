@@ -151,8 +151,11 @@ def main(argv: list[str] | None = None) -> int:
 
     csv_path = out_dir / "sweep.csv"
     write_csv(results, csv_path)
+    text = summary(results)
+    (out_dir / "summary.txt").write_text(
+        f"模型：{args.model.name}（第 {args.plate} 盤）\n\n{text}\n", encoding="utf-8")
     print()
-    print(summary(results))
+    print(text)
     print()
     print(f"CSV：{csv_path}（共 {time.monotonic() - started:.0f} 秒）")
     return 0 if all(r.ok for r in results) else 1

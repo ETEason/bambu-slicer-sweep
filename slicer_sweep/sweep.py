@@ -175,7 +175,7 @@ def run_sweep(model: Path, plate: int, densities: list[Decimal], patterns: list[
                 r.other_g = sum(v for k, v in fg.items() if k not in known)
                 r.filament_m = s.total_length_mm / 1000
                 r.total_time, r.total_time_s, r.print_time = s.total_time, s.total_time_s, s.print_time
-                r.warnings = s.warnings
+                r.warnings = run.warnings + s.warnings
                 if keep:
                     dest = out_dir / f"{model.stem}_plate{plate}_{label}.gcode.3mf"
                     shutil.move(run.output_3mf, dest)
