@@ -182,7 +182,7 @@ Each document also has a Traditional Chinese version (`*.zh-TW.md`).
 - Windows only (uses `taskkill` and Windows process groups); verified only with Bambu Studio 2.7.1.62
 - Option names must be Bambu setting keys; for an invalid name or value the slicer only returns exit code -2, with no explanation
 - Only `sparse_infill_density` and `sparse_infill_pattern` are checked after slicing; other `--set` values are not read back
-- If objects or parts on the plate have their own value for a swept or `--set` setting, the command-line override does not apply to them (tested); the tool lists those objects and stops without slicing
+- If objects or parts on the plate have their own value for an infill or `--set` setting, the command-line override does not apply to them (tested); the tool lists those objects and stops without slicing. Other per-object settings (e.g. wall count) are only listed as a note and slicing goes on
 - Multi-filament 3MF: per-line-type weights all use the first filament's density and diameter (the total is still the slicer's correct value)
 - Times are the slicer's estimates, same as the GUI, not actual print times
 - In about 2-5% of slices the slicer exits normally but Windows cannot tear its process down (probably the graphics driver). Results are unaffected, but that slice's temp folder cannot be deleted until you restart; the tool tells you when this happens. See the [design notes](docs/design.md#a-slicer-that-exits-but-cannot-be-cleaned-up)

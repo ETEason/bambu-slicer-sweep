@@ -2,9 +2,9 @@ import io
 import unittest
 import zipfile
 
-from slicer_sweep.cli import override_warning
+from slicer_sweep.cli import override_notice, override_warning
 from slicer_sweep.i18n import set_lang, t
-from slicer_sweep.sweep import object_overrides
+from slicer_sweep.sweep import INFILL_KEYS, object_overrides
 
 MODEL_SETTINGS = """<?xml version="1.0" encoding="UTF-8"?>
 <config>
@@ -67,6 +67,19 @@ class ObjectOverridesTest(unittest.TestCase):
     def test_pinned_keys_are_checked_too(self):
         got = [o.key for o in object_overrides(model(), 1, KEYS | {"wall_loops"})]
         self.assertIn("wall_loops", got)
+
+    def test_all_settings_skip_object_description(self):
+        got = {(o.object_name, o.key) for o in object_overrides(model(), 1)}
+        self.assertEqual(got, {("Blade", "sparse_infill_density"), ("Hinge", "sparse_infill_pattern"),
+                               ("Hinge", "wall_loops")})
+
+    def test_notice_text(self):
+        set_lang("zh-TW")
+        items = [o for o in object_overrides(model(), 1) if o.key not in INFILL_KEYS]
+        text = override_notice(items)
+        self.assertTrue(text.startswith("提醒："))
+        self.assertIn("的零件 Pin：wall_loops = 4", text)
+        self.assertEqual(override_notice([]), "")
 
     def test_no_model_settings(self):
         self.assertEqual(object_overrides(model(""), 1, KEYS), [])

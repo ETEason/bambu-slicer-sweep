@@ -42,8 +42,13 @@ object with the G-code's `; start printing object, unique label id` markers give
 | 6 objects with their own setting | 60% ×5, 10% ×1 | 0.30–0.65 g | **identical to 5%** |
 
 The command-line value only applies to objects without their own setting. So before slicing, the tool checks the
-objects and parts on the selected plate; if any of them sets a swept setting (or a `--set` setting) itself, it
-lists their names, ids and values and exits with code 2 without slicing.
+objects and parts on the selected plate; if any of them sets an infill setting itself (`sparse_infill_density`, `sparse_infill_pattern`, and
+`skeleton_infill_density` / `skin_infill_density`, which are set together with the density) or a `--set` setting,
+it lists their names, ids and values and exits with code 2 without slicing.
+
+Other per-object settings (e.g. `wall_loops`) are the same at every density, so they do not distort the comparison,
+but they do change the filament and time figures; the tool only prints a note, keeps slicing, and writes the note
+into `summary.txt`.
 
 ## Why parse the G-code
 

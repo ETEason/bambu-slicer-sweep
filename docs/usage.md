@@ -115,7 +115,8 @@ The output folder contains:
 | `slicing failed: exit code -2 (usually an invalid option name or value)` | A `-p` or `--set` name or value is misspelt |
 | `timed out after 300 s; slicer stopped` | The model is too complex; raise `--timeout` |
 | `setting was not applied (G-code has …)` | The slicer did not use the override; that result is not trustworthy and is recorded as failed |
+| `note: these objects have other settings of their own…` | The listed objects have other settings of their own (e.g. wall count). They do not affect the comparison and slicing goes on, but the filament and time figures include them; the note is also written to `summary.txt` |
 | `warning: the slicer exited normally but Windows could not tear its process down …` | Happens in about 2–5% of slices; the result is still valid. See the [design notes](design.md#a-slicer-that-exits-but-cannot-be-cleaned-up) |
 | `warning: temp folder … could not be deleted` | The process above keeps its temp folder; it can be deleted after a restart |
 | `warning: the slicer did not exit 30 s after writing its results and was stopped` | Fallback mechanism; the result is still valid |
-| `warning: some objects in the model have their own value for these settings…` | The listed objects have their own value in the GUI for a swept (or `--set`) setting, so the swept value does not apply to them and the results would be misleading; the tool exits without slicing (code 2). Remove the per-object settings in the Bambu Studio object list, then run again |
+| `warning: some objects in the model have their own value for these settings…` | The listed objects have their own value in the GUI for an infill setting (density, pattern, skeleton/skin infill density) or a `--set` setting, so the swept value does not apply to them and the results would be misleading; the tool exits without slicing (code 2). Remove the per-object settings in the Bambu Studio object list, then run again |

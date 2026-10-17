@@ -77,9 +77,12 @@ MESSAGES: dict[str, tuple[str, str]] = {
     "override_head": ("模型中有物件已單獨指定以下參數，掃描的值不會套用到這些物件：",
                       "some objects in the model have their own value for these settings, so the swept value "
                       "will not apply to them:"),
-    "override_object": ("  {name}（物件 id {id}）：{key} = {value}", "  {name} (object id {id}): {key} = {value}"),
-    "override_part": ("  {name}（物件 id {id}）的零件 {part}：{key} = {value}",
-                      "  {name} (object id {id}), part {part}: {key} = {value}"),
+    "override_notice_head": ("提醒：以下物件有其他個別設定，不影響掃描的比較，但會影響用料與時間的數值：",
+                             "note: these objects have other settings of their own; they do not affect the "
+                             "comparison, but they do affect the filament and time figures:"),
+    "override_object": ("  {name}（物件 id {id}）：{settings}", "  {name} (object id {id}): {settings}"),
+    "override_part": ("  {name}（物件 id {id}）的零件 {part}：{settings}",
+                      "  {name} (object id {id}), part {part}: {settings}"),
     "override_tail": ("這些物件會維持自己的設定，掃描結果會失真，因此不進行切片。"
                       "請先在 Bambu Studio 的物件清單中移除這些物件的個別設定，再重新執行。",
                       "Those objects keep their own settings and would distort the results, so nothing was sliced. "

@@ -145,11 +145,21 @@ class ObjectOverride:
     value: str
 
 
-def object_overrides(model: Path, plate: int, keys: set[str]) -> list[ObjectOverride]:
-    """Settings in ``keys`` that objects (or their parts) on ``plate`` set for themselves.
+# Per-object settings that make a density/pattern sweep meaningless for that object:
+# the command-line value does not apply to an object with its own value (see docs/design.md).
+# skeleton/skin_infill_density are infill densities set alongside sparse_infill_density.
+INFILL_KEYS = frozenset({"sparse_infill_density", "sparse_infill_pattern",
+                         "skeleton_infill_density", "skin_infill_density"})
+# <metadata> keys on objects/parts that describe the object itself rather than a setting.
+_NOT_SETTINGS = frozenset({"name", "extruder", "matrix"})
 
-    Bambu Studio stores per-object settings as <metadata key=... value=...> on the
-    <object> / <part> elements of Metadata/model_settings.config.
+
+def object_overrides(model: Path, plate: int, keys: set[str] | None = None) -> list[ObjectOverride]:
+    """Settings that objects (or their parts) on ``plate`` set for themselves.
+
+    Only ``keys`` when given, otherwise every per-object setting. Bambu Studio stores
+    them as <metadata key=... value=...> on the <object> / <part> elements of
+    Metadata/model_settings.config.
     """
     import xml.etree.ElementTree as ET
     text = _model_cfg(model)
@@ -175,7 +185,10 @@ def object_overrides(model: Path, plate: int, keys: set[str]) -> list[ObjectOver
         name = meta(obj, "name") or oid
         for el, part in [(obj, None)] + [(p, meta(p, "name") or p.get("id", "")) for p in obj.findall("part")]:
             for m in el.findall("metadata"):
-                if m.get("key") in keys:
+                key = m.get("key")
+                if not key or key in _NOT_SETTINGS or key.startswith("source_"):
+                    continue
+                if keys is None or key in keys:
                     found.append(ObjectOverride(name, oid, part, m.get("key"), m.get("value", "")))
     return found
 

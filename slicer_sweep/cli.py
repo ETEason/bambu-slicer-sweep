@@ -10,7 +10,7 @@ from pathlib import Path
 
 from .bambu import DEFAULT_EXE, DEFAULT_TIMEOUT_S
 from .i18n import LANGS, detect_lang, set_lang, t
-from .sweep import (ObjectOverride, RunResult, best, density_list, fmt_num, model_info,
+from .sweep import (INFILL_KEYS, ObjectOverride, RunResult, best, density_list, fmt_num, model_info,
                     object_overrides, run_sweep, write_csv)
 
 
@@ -91,17 +91,28 @@ def summary(results: list[RunResult]) -> str:
     return "\n".join(lines)
 
 
+def _override_lines(items: list[ObjectOverride]) -> list[str]:
+    """One line per object (or part), listing all of its settings."""
+    groups: dict[tuple, list[str]] = {}
+    for o in items:
+        groups.setdefault((o.object_name, o.object_id, o.part_name), []).append(f"{o.key} = {o.value}")
+    return [t("override_object" if part is None else "override_part", name=name, id=oid, part=part,
+              settings=t("list_sep").join(settings))
+            for (name, oid, part), settings in groups.items()]
+
+
 def override_warning(items: list[ObjectOverride]) -> str:
-    """Multi-line warning listing objects that set swept/pinned settings themselves."""
+    """Warning for objects that set a swept/pinned setting themselves (the sweep stops)."""
     if not items:
         return ""
-    lines = [t("warning", text=t("override_head"))]
-    for o in items:
-        msg = "override_object" if o.part_name is None else "override_part"
-        lines.append(t(msg, name=o.object_name, id=o.object_id, part=o.part_name, key=o.key,
-                       value=o.value))
-    lines.append(t("override_tail"))
-    return "\n".join(lines)
+    return "\n".join([t("warning", text=t("override_head")), *_override_lines(items), t("override_tail")])
+
+
+def override_notice(items: list[ObjectOverride]) -> str:
+    """Notice for other per-object settings (the sweep goes on)."""
+    if not items:
+        return ""
+    return "\n".join([t("override_notice_head"), *_override_lines(items)])
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -145,11 +156,17 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     # Objects with their own value would ignore the sweep and make the numbers misleading,
     # so stop before slicing anything.
-    keys = {"sparse_infill_density", "sparse_infill_pattern"} | {k.replace("-", "_") for k in extra}
-    overridden = override_warning(object_overrides(args.model, args.plate, keys))
-    if overridden:
-        print(overridden, file=sys.stderr)
+    blocking_keys = INFILL_KEYS | {k.replace("-", "_") for k in extra}
+    found = object_overrides(args.model, args.plate)
+    blocking = [o for o in found if o.key in blocking_keys]
+    notice = override_notice([o for o in found if o.key not in blocking_keys])
+    if blocking:
+        print(override_warning(blocking), file=sys.stderr)
+        if notice:
+            print(notice, file=sys.stderr)
         return 2
+    if notice:
+        print(notice, file=sys.stderr)
 
     out_dir = args.out_dir or Path("results") / f"{args.model.stem}_{datetime.now():%Y%m%d-%H%M%S}"
     total = len(densities) * len(patterns or [None])
@@ -179,7 +196,8 @@ def main(argv: list[str] | None = None) -> int:
     write_csv(results, csv_path)
     text = summary(results)
     (out_dir / "summary.txt").write_text(
-        t("summary_model", model=args.model.name, plate=args.plate) + f"\n\n{text}\n",
+        t("summary_model", model=args.model.name, plate=args.plate) + "\n\n"
+        + (notice + "\n\n" if notice else "") + text + "\n",
         encoding="utf-8")
     print()
     print(text)
