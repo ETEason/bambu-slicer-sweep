@@ -90,7 +90,7 @@ python -m slicer_sweep "input\model.3mf" -d 10,11 --set wall_loops=3 --set top_s
 
 | 檔案 | 內容 |
 |---|---|
-| `sweep.csv` | 每次切片一列，欄位說明見 [README](../README.md#-使用方式) 的「CSV 欄位說明」 |
+| `sweep.csv` | 每次切片一列，欄位說明見 [README](../README.zh-TW.md#-使用方式) 的「CSV 欄位說明」 |
 | `summary.txt` | 與終端機相同的摘要表 |
 | `<模型名>_plate<N>_<圖案>_<密度>.gcode.3mf` | 只有加 `--keep` 時才有 |
 

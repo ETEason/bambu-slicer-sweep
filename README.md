@@ -1,10 +1,12 @@
 <div align="center">
 
-# slicer-sweep
+# bambu-slicer-sweep
 
-用 Bambu Studio CLI 對 3MF 自動掃描稀疏填充密度（與填充圖案），彙整用料、時間與各走線類型用量，找出最省料的設定。
+**English** · [繁體中文](README.zh-TW.md)
 
-[使用說明](docs/usage.md) · [設計說明](docs/design.md) · [CLI 與 GUI 數據對照](docs/verification.md) · [葉片掃描結果](results/blade_gyroid_density_5-15/summary.txt)
+Slice a 3MF with the Bambu Studio CLI across many sparse infill densities (and patterns), collect filament usage, print time and per-line-type usage, and find the setting that uses the least material.
+
+[Usage guide](docs/usage.md) · [Design notes](docs/design.md) · [CLI vs GUI check](docs/verification.md) · [Example sweep result](results/blade_gyroid_density_5-15/summary.txt)
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![Bambu Studio](https://img.shields.io/badge/Bambu%20Studio-2.7.1.62-00AE42)
@@ -35,149 +37,154 @@
 時間最短：11%（102.45 g，4h 10m 23s）
 ```
 
-## ✨ 功能
+The terminal output is in Traditional Chinese. Columns: density, total filament, sparse infill, bridge, sparse + bridge, internal solid infill, total time, marks (★ least filament, ⏱ shortest time). CSV column names are in English.
 
-- 直接使用 3MF 內嵌的印表機／耗材／工藝設定，只以命令列參數覆蓋要掃描的值
-- 密度可用清單或範圍＋步長，支援小數（例如 `10.5`）
-- 可同時掃描多種填充圖案，也可用 `--set` 固定覆蓋其他設定
-- 依 G-code 的 `; FEATURE:` 計算各走線類型用量，換算方式與 GUI 一致（[對照結果](docs/verification.md)全部在 0.2% 以內）
-- 輸出 CSV＋終端機摘要，標出總用料最少與時間最短的組合，並列出「稀疏填充＋橋接」
-- 每次切片後讀回 G-code 中的設定，確認覆蓋真的有套用
+## ✨ Features
 
-## 🚀 快速開始
+- Uses the printer, filament and process settings embedded in the 3MF and overrides only the swept values from the command line
+- Densities as a list or a range with a step, decimals allowed (e.g. `10.5`)
+- Sweep several infill patterns at once, and pin other settings with `--set`
+- Per-line-type usage computed from the G-code `; FEATURE:` markers, converted the same way as the GUI (the [CLI vs GUI check](docs/verification.md) agrees within 0.2%)
+- CSV plus a terminal summary that marks the least-filament and fastest runs and shows sparse infill + bridge
+- After every slice the applied settings are read back from the G-code to confirm the override took effect
 
-需求：Windows、Python 3.14、Bambu Studio 2.7（預設路徑 `C:\Program Files\Bambu Studio\bambu-studio.exe`）。只用標準函式庫，不需安裝套件；在專案資料夾中執行即可。
-以下範例假設 3MF 放在 `input\model.3mf`（`input\` 不會進 git），也可以直接給任何路徑。
+## 🚀 Quick start
+
+Requirements: Windows, Python 3.14, Bambu Studio 2.7 (default path `C:\Program Files\Bambu Studio\bambu-studio.exe`). Standard library only, nothing to install; run it from the project folder.
+The examples assume the 3MF is at `input\model.3mf` (`input\` is git-ignored); any path works.
 
 ```powershell
 python -m slicer_sweep "input\model.3mf" --range 5 15 1
 ```
 
-## 📖 使用方式
+## 📖 Usage
 
 ```powershell
-python -m slicer_sweep <3MF 路徑> <密度指定> [選項]
+python -m slicer_sweep <3MF path> <densities> [options]
 ```
 
-`<密度指定>` 必填，用 `-d` 或 `-r`（可併用）。其餘都是選項：
+`<densities>` is required: `-d`, `-r`, or both. Everything else is optional:
 
-| 參數 | 預設 | 說明 |
+| Option | Default | Description |
 |---|---|---|
-| `-d 3,10.5,11` | — | 密度清單（%），逗號分隔，可用小數 |
-| `-r 5 15 1` | — | 密度範圍：起始、結束、步長，**包含結束值** |
-| `-p gyroid,grid` | 3MF 內嵌的圖案 | 填充圖案（Bambu 設定值，例如 `gyroid`、`grid`、`cubic`、`adaptivecubic`、`honeycomb`、`lightning`），每個圖案都跑完所有密度 |
-| `--set wall_loops=3` | — | 所有切片都固定覆蓋的其他設定，可重複 |
-| `--plate 2` | `1` | 盤號 |
-| `-o results\xxx` | `results\<模型名>_<時間>` | 輸出資料夾 |
-| `--keep` | 不保留 | 保留每次切片的 `.gcode.3mf` |
-| `--timeout 600` | `300` | 每次切片的逾時秒數 |
-| `--exe 路徑` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio 執行檔 |
+| `-d 3,10.5,11` | — | Density list (%), comma-separated, decimals allowed |
+| `-r 5 15 1` | — | Density range: start, end, step; **the end value is included** |
+| `-p gyroid,grid` | pattern in the 3MF | Infill patterns (Bambu setting values such as `gyroid`, `grid`, `cubic`, `adaptivecubic`, `honeycomb`, `lightning`); every pattern runs every density |
+| `--set wall_loops=3` | — | Extra setting applied to every slice; repeatable |
+| `--plate 2` | `1` | Plate number |
+| `-o results\xxx` | `results\<model>_<time>` | Output folder |
+| `--keep` | off | Keep the sliced `.gcode.3mf` of every run |
+| `--timeout 600` | `300` | Timeout per slice, in seconds |
+| `--exe PATH` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio executable |
 
-常見用法：
+Examples:
 
 ```powershell
-# 指定幾個密度（可用小數）
+# A few densities (decimals allowed)
 python -m slicer_sweep "input\model.3mf" -d 3,10.5,11,13
 
-# 8%～14% × 三種圖案（共 21 次），保留 gcode.3mf，輸出到指定資料夾
+# 8%-14% x three patterns (21 slices), keep the gcode.3mf files, custom output folder
 python -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic --keep -o results\patterns
 
-# 第 2 盤，牆數固定為 3，逾時改為 10 分鐘
+# Plate 2, walls fixed at 3, 10-minute timeout
 python -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout 600
 ```
 
-輸出資料夾中有 `sweep.csv`（每次切片一列）、`summary.txt`（與終端機相同的摘要表），加 `--keep` 時另有每次的 `.gcode.3mf`。
-全部成功時結束代碼為 0，有任何一次失敗為 1，參數錯誤為 2。
+The output folder contains `sweep.csv` (one row per slice) and `summary.txt` (the terminal summary table); with `--keep` it also holds each `.gcode.3mf`.
+Exit code is 0 when every slice succeeds, 1 when any slice fails, 2 for invalid arguments.
 
-完整說明（密度寫法、圖案名稱對照、小數密度注意事項、常見錯誤訊息）見 **[docs/usage.md](docs/usage.md)**。
+The full guide (density syntax, pattern names, decimal densities, error messages) is in **[docs/usage.md](docs/usage.md)** (Traditional Chinese).
 
 <details>
-<summary>CSV 欄位說明</summary>
+<summary>CSV columns</summary>
 
-重量單位皆為 g，以 3MF 中耗材的密度與線徑換算；各走線類型與 GUI 預覽「走線類型」統計相同。
+Weights are in grams, converted with the filament density and diameter stored in the 3MF; line types match the GUI preview "Line type" statistics.
 
-| 欄位 | 說明 |
+| Column | Description |
 |---|---|
-| `pattern` | 填充圖案（從 G-code 讀回的實際值） |
-| `density_pct` | 稀疏填充密度（%） |
-| `status` | `ok` 或 `error` |
-| `total_g` | 總用料（切片器計算值，同 GUI） |
-| `sparse_plus_bridge_g` | 稀疏填充＋橋接 |
-| `sparse_infill_g` | 稀疏填充 |
-| `bridge_g` | 橋接（含內部橋接） |
-| `internal_solid_infill_g` | 內部實心填充（含 G-code 中的 `Floating vertical shell`） |
-| `top_surface_g` / `bottom_surface_g` | 頂面／底面 |
-| `inner_wall_g` / `outer_wall_g` | 內牆／外牆 |
-| `gap_infill_g` | 填縫 |
-| `custom_g` | 自定義（起始 G-code 的劃線等） |
-| `other_g` | 上列以外的類型（例如支撐） |
-| `filament_m` | 線材長度（m） |
-| `total_time` / `total_time_s` | 總時間（含準備時間），文字與秒數 |
-| `print_time` | 模型列印時間（不含準備時間） |
-| `slice_seconds` | 這次切片花了幾秒 |
-| `gcode_3mf` | 有 `--keep` 時保留的檔名 |
-| `error` | 失敗原因 |
+| `pattern` | Infill pattern (actual value read back from the G-code) |
+| `density_pct` | Sparse infill density (%) |
+| `status` | `ok` or `error` |
+| `total_g` | Total filament (slicer's own value, same as the GUI) |
+| `sparse_plus_bridge_g` | Sparse infill + bridge |
+| `sparse_infill_g` | Sparse infill |
+| `bridge_g` | Bridge (including internal bridges) |
+| `internal_solid_infill_g` | Internal solid infill (includes the G-code type `Floating vertical shell`) |
+| `top_surface_g` / `bottom_surface_g` | Top / bottom surface |
+| `inner_wall_g` / `outer_wall_g` | Inner / outer wall |
+| `gap_infill_g` | Gap infill |
+| `custom_g` | Custom (e.g. the purge line in the start G-code) |
+| `other_g` | Any other line type (e.g. support) |
+| `filament_m` | Filament length (m) |
+| `total_time` / `total_time_s` | Total time including preparation, as text and seconds |
+| `print_time` | Model print time, excluding preparation |
+| `slice_seconds` | How long the slice took |
+| `gcode_3mf` | Kept file name when `--keep` is used |
+| `error` | Failure reason |
 
-CSV 以 UTF-8（含 BOM）寫出，可直接用 Excel 開啟。
+The CSV is written as UTF-8 with BOM so Excel opens it correctly.
 
 </details>
 
-## 🔒 安全性
+## 🔒 Safety
 
-- 原始 3MF 不會被修改：先複製到輸出資料夾的 `_work\` 再切片，結束後刪除暫存
-- 不讀取 `%AppData%\BambuStudio` 或安裝資料夾，所有設定都來自 3MF
-- 一次只執行一個切片程序；逾時會結束整個程序樹，切片器寫完結果卻不結束時也會在 30 秒後結束它
-- 按 Ctrl+C 中斷時會先結束切片程序
+- The original 3MF is never modified: it is copied into `_work\` in the output folder before slicing, and the temporary files are removed afterwards
+- Nothing is read from `%AppData%\BambuStudio` or the install folder; all settings come from the 3MF
+- Only one slicer process runs at a time; on timeout the whole process tree is killed, and a slicer that has written its results but does not exit is killed after 30 seconds
+- Ctrl+C stops the running slicer process before exiting
 
-## 🧪 開發
+## 🧪 Development
 
 ```powershell
 python -m unittest discover -s tests -t .
 ```
 
-與 GUI 實測數據對照（會切 13 次，重新產生 [docs/verification.md](docs/verification.md)）：
+Compare against GUI measurements (13 slices; regenerates [docs/verification.md](docs/verification.md)):
 
 ```powershell
 python tools\verify_gui.py "input\model.3mf"
 ```
 
 <details>
-<summary>專案結構</summary>
+<summary>Project layout</summary>
 
 ```text
 slicer_sweep/
-  cli.py           命令列參數、終端機摘要表
-  sweep.py         掃描流程、CSV、最佳值
-  bambu.py         執行 bambu-studio.exe（逾時、結束程序樹）
-  sliced.py        讀取 gcode.3mf：標頭、設定、耗材密度
-  gcode_stats.py   依 ; FEATURE: 加總各走線類型的擠出長度
-tests/             單元測試
+  cli.py           command-line options, terminal summary table
+  sweep.py         sweep loop, CSV, best-run selection
+  bambu.py         runs bambu-studio.exe (timeout, process-tree kill)
+  sliced.py        reads the gcode.3mf: header, settings, filament density
+  gcode_stats.py   sums extruded length per ; FEATURE: line type
+tests/             unit tests
 tools/
-  verify_gui.py       CLI 與 GUI 數據對照
-  capture_console.py  擷取 bambu-studio --help（它只寫到主控台）
-docs/              設計說明、驗證結果、CLI --help 輸出
-results/           掃描結果
+  verify_gui.py       CLI vs GUI comparison
+  capture_console.py  captures bambu-studio --help (it writes only to the console)
+docs/              usage guide, design notes, verification, CLI --help output
+results/           sweep results
 ```
 
 </details>
 
-## 📚 文件
+## 📚 Docs
 
-- [使用說明](docs/usage.md)：所有參數、圖案名稱對照、輸出與錯誤訊息
-- [設計說明](docs/design.md)：為什麼用命令列覆蓋、G-code 怎麼換算、程序管理
-- [CLI 與 GUI 數據對照](docs/verification.md)
-- [Bambu Studio 2.7.1.62 `--help` 輸出](docs/bambu-cli-help.txt)
+The docs are in Traditional Chinese.
 
-## ⚠️ 限制
+- [Usage guide](docs/usage.md): every option, pattern names, output and error messages
+- [Design notes](docs/design.md): why command-line overrides, how the G-code is converted, process handling
+- [CLI vs GUI check](docs/verification.md)
+- [Bambu Studio 2.7.1.62 `--help` output](docs/bambu-cli-help.txt)
 
-- 只支援 Windows（用到 `taskkill` 與 Windows 的程序群組），只在 Bambu Studio 2.7.1.62 上驗證過
-- 參數名稱必須是 Bambu 的設定鍵；名稱或值無效時切片器只回傳 exit code -2，不會說明原因
-- 只驗證 `sparse_infill_density` 與 `sparse_infill_pattern` 有套用；`--set` 的其他設定不會讀回檢查
-- 若 3MF 中有物件／零件層級的填充設定，命令列覆蓋可能不會套用到該物件（工具會警告）
-- 多耗材的 3MF：各走線類型的重量一律用第 1 個耗材的密度與線徑換算（總用料仍是切片器的正確值）
-- 時間是切片器的估算值，與 GUI 相同，但不等於實際列印時間
-- 切片器偶爾寫完結果後不會結束，該次會多花約 30 秒- 小數密度（例如 10.5%）CLI 會照實使用，但 GUI 中不一定能輸入同樣的值；要列印時請用 `--keep` 保留的 gcode.3mf
+## ⚠️ Limitations
 
-## 授權
+- Windows only (uses `taskkill` and Windows process groups); verified only with Bambu Studio 2.7.1.62
+- Option names must be Bambu setting keys; for an invalid name or value the slicer only returns exit code -2, with no explanation
+- Only `sparse_infill_density` and `sparse_infill_pattern` are checked after slicing; other `--set` values are not read back
+- If the 3MF has per-object or per-part infill settings, the command-line override may not apply to those objects (the tool warns)
+- Multi-filament 3MF: per-line-type weights all use the first filament's density and diameter (the total is still the slicer's correct value)
+- Times are the slicer's estimates, same as the GUI, not actual print times
+- The slicer occasionally does not exit after writing its results; that slice then takes about 30 seconds longer
+- Decimal densities (e.g. 10.5%) are honoured by the CLI, but the GUI may not accept the same value; to print one, use the `.gcode.3mf` kept with `--keep`
+
+## License
 
 [MIT](LICENSE)
