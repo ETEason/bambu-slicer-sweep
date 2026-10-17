@@ -1,118 +1,121 @@
-# 使用說明
+# Usage guide
 
-## 基本語法
+**English** · [繁體中文](usage.zh-TW.md)
+
+## Syntax
 
 ```powershell
-python -m slicer_sweep <3MF 路徑> <密度指定> [選項]
+python -m slicer_sweep <3MF path> <densities> [options]
 ```
 
-- `<3MF 路徑>`：要切片的 3MF。工具使用其中內嵌的印表機、耗材、工藝設定，只覆蓋你要掃描的值；原始檔不會被修改。
-- `<密度指定>`：必填，用 `-d` 或 `-r`（或兩者併用），見下一節。
-- 路徑含中文或空白時請加雙引號。
-- 請在專案資料夾中執行（`-m slicer_sweep` 從目前資料夾載入程式）。工具只用 Python 標準函式庫，不需安裝套件。
+- `<3MF path>`: the 3MF to slice. The printer, filament and process settings embedded in it are used; only the values you sweep are overridden, and the original file is never modified.
+- `<densities>`: required, given with `-d`, `-r` or both (see the next section).
+- Quote paths that contain spaces or non-ASCII characters.
+- Run it from the project folder (`-m slicer_sweep` loads the code from the current folder). It uses only the Python standard library; nothing needs to be installed.
+- `python .\slicer_sweep\ …` (what PowerShell tab completion produces) works the same way.
 
-## 指定密度
+## Densities
 
-| 寫法 | 切片的密度 |
+| Written as | Densities sliced |
 |---|---|
 | `-d 11` | 11% |
-| `-d 3,10.5,11,13` | 3%、10.5%、11%、13%（逗號分隔，可用小數，可加 `%`） |
-| `-r 5 15 1` | 5%、6%、…、15%（起始、結束、步長；**包含結束值**） |
-| `-r 10 12 0.5` | 10%、10.5%、11%、11.5%、12% |
-| `-r 5 15 1 -d 10.5` | 5%～15% 每 1%，再加上 10.5%（重複的值只切一次） |
+| `-d 3,10.5,11,13` | 3%, 10.5%, 11%, 13% (comma-separated, decimals allowed, `%` optional) |
+| `-r 5 15 1` | 5%, 6%, …, 15% (start, end, step; **the end value is included**) |
+| `-r 10 12 0.5` | 10%, 10.5%, 11%, 11.5%, 12% |
+| `-r 5 15 1 -d 10.5` | 5%–15% in 1% steps, plus 10.5% (duplicates are sliced once) |
 
-密度必須在 0～100 之間。
+Densities must be between 0 and 100.
 
-> **關於小數密度**：Bambu Studio 2.7.1.62 的 CLI 確實會使用小數值。實測 10.5% 時，G-code 中的設定是
-> `sparse_infill_density = 10.5%`，總用料 108.38 g，和 10%（106.74 g）、11%（102.45 g）都不同，可見沒有被捨去成整數。
-> 但 GUI 的輸入框不一定能輸入同樣的小數，所以小數密度的結果在 GUI 中可能無法重現。
-> 若要列印小數密度的結果，請加 `--keep`，直接列印保留下來的 `.gcode.3mf`。
+> **Decimal densities**: the Bambu Studio 2.7.1.62 CLI really uses decimal values. At 10.5% the G-code
+> settings read `sparse_infill_density = 10.5%` and the total is 108.38 g, different from both 10% (106.74 g)
+> and 11% (102.45 g), so the value is not rounded. The GUI, however, may not accept the same decimal value, so a
+> decimal-density result may not be reproducible there. To print one, add `--keep` and print the kept `.gcode.3mf`.
 
-## 掃描填充圖案
+## Infill patterns
 
 ```powershell
 python -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic
 ```
 
-- `-p` 後面接逗號分隔的圖案名稱，每個圖案都會跑完所有密度（上例共 3 × 7 = 21 次切片）。
-- 沒有 `-p` 時使用 3MF 內嵌的圖案。
-- 名稱要用 Bambu Studio 的設定值（英文小寫），不是 GUI 上的中文名稱。已實測可用：
+- `-p` takes comma-separated pattern names; every pattern runs every density (3 × 7 = 21 slices above).
+- Without `-p` the pattern embedded in the 3MF is used.
+- Names are Bambu Studio setting values (lower-case), not the names shown in the GUI. Verified to work:
 
-  | 設定值 | GUI 名稱 |
+  | Setting value | GUI name |
   |---|---|
-  | `gyroid` | 螺旋體 |
-  | `grid` | 網格 |
-  | `cubic` | 立方體 |
-  | `adaptivecubic` | 自適應立方體 |
-  | `honeycomb` | 蜂窩 |
-  | `lightning` | 閃電 |
+  | `gyroid` | Gyroid |
+  | `grid` | Grid |
+  | `cubic` | Cubic |
+  | `adaptivecubic` | Adaptive Cubic |
+  | `honeycomb` | Honeycomb |
+  | `lightning` | Lightning |
 
-  不認得的名稱會讓該次切片失敗並顯示「exit code -2」，其他組合照常繼續。
+  An unknown name makes that slice fail with "exit code -2"; the other combinations continue.
 
-## 固定覆蓋其他設定
+## Pinning other settings
 
 ```powershell
 python -m slicer_sweep "input\model.3mf" -d 10,11 --set wall_loops=3 --set top_shell_layers=5
 ```
 
-`--set 設定鍵=值` 可以重複使用，所有切片都套用同樣的值。設定鍵就是 3MF 裡
-`Metadata/project_settings.config` 或 G-code 結尾 `; CONFIG_BLOCK` 中的名稱（底線或連字號都可以）。
-密度和圖案請用 `-d` / `-r` / `-p` 指定，不能用 `--set`。
+`--set KEY=VALUE` can be repeated; every slice uses the same values. Keys are the names found in the 3MF's
+`Metadata/project_settings.config` or in the `; CONFIG_BLOCK` at the end of the G-code (underscores or hyphens both work).
+Density and pattern must be given with `-d` / `-r` / `-p`, not with `--set`.
 
-> 工具只會讀回檢查密度和圖案是否套用；`--set` 的值不會檢查，請自行用 `--keep` 保留檔案並確認。
+> Only density and pattern are read back and checked after slicing; `--set` values are not. Use `--keep` and check the files yourself.
 
-## 其他選項
+## Other options
 
-| 選項 | 預設 | 說明 |
+| Option | Default | Description |
 |---|---|---|
-| `--plate N` | `1` | 要切第幾盤（從 1 開始）。盤號不存在時會列出 3MF 中有哪些盤 |
-| `-o, --out-dir 資料夾` | `results\<模型名>_<日期-時間>` | 輸出資料夾，不存在會自動建立；已存在時會覆寫裡面的 `sweep.csv`、`summary.txt` |
-| `--keep` | 不保留 | 保留每次切片的 `.gcode.3mf`，可以用 Bambu Studio 開啟檢查或直接列印 |
-| `--timeout 秒數` | `300` | 每次切片的時間上限，超過就結束該次切片並記為失敗 |
-| `--exe 路徑` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | Bambu Studio 安裝在其他位置時使用 |
-| `--lang zh-TW` / `--lang en` | 依 Windows 顯示語言（中文 → `zh-TW`，其他 → `en`） | 終端機訊息、摘要表與 `summary.txt` 的語言；CSV 欄位名稱一律是英文 |
+| `--plate N` | `1` | Plate to slice (1-based). If the plate does not exist, the plates in the 3MF are listed |
+| `-o, --out-dir FOLDER` | `results\<model>_<date-time>` | Output folder, created if missing; an existing `sweep.csv` / `summary.txt` in it is overwritten |
+| `--keep` | off | Keep each slice's `.gcode.3mf`, to open in Bambu Studio or print directly |
+| `--timeout SECONDS` | `300` | Time limit per slice; a slice that exceeds it is stopped and recorded as failed |
+| `--exe PATH` | `C:\Program Files\Bambu Studio\bambu-studio.exe` | For a Bambu Studio installed elsewhere |
+| `--lang en` / `--lang zh-TW` | Windows display language (Chinese → `zh-TW`, otherwise `en`) | Language of terminal messages, the summary table and `summary.txt`; CSV column names are always English |
 
-## 執行過程與輸出
+## Progress and output
 
-執行時每完成一次切片就顯示一行進度：
+Each finished slice prints one progress line:
 
 ```text
-[7/11] gyroid 11%   102.45 g  4h 10m 23s  （切片 2.5 秒）
+[7/11] gyroid 11%   102.45 g  4h 10m 23s  (sliced in 2.5 s)
 ```
 
-全部完成後顯示摘要表，並標出：
+When everything is done a summary table is printed with these marks:
 
-- `★最少用料`：總用料最少的組合
-- `⏱最短時間`：總時間最短的組合
+- `★least filament`: the run with the least total filament
+- `⏱fastest`: the run with the shortest total time
 
-數值相同（四捨五入到 0.01 g／1 秒）時會全部標出。掃描多種圖案時，另外列出每種圖案各自用料最少的密度。
+Ties (rounded to 0.01 g / 1 s) are all marked. When several patterns are swept, the least-filament density of each pattern is listed too.
 
-輸出資料夾內容：
+The output folder contains:
 
-| 檔案 | 內容 |
+| File | Content |
 |---|---|
-| `sweep.csv` | 每次切片一列，欄位說明見 [README](../README.zh-TW.md#-使用方式) 的「CSV 欄位說明」 |
-| `summary.txt` | 與終端機相同的摘要表 |
-| `<模型名>_plate<N>_<圖案>_<密度>.gcode.3mf` | 只有加 `--keep` 時才有 |
+| `sweep.csv` | One row per slice; columns are described under "CSV columns" in the [README](../README.md#-usage) |
+| `summary.txt` | The same summary table as the terminal |
+| `<model>_plate<N>_<pattern>_<density>.gcode.3mf` | Only with `--keep` |
 
-### 結束代碼
+### Exit codes
 
-| 代碼 | 意義 |
+| Code | Meaning |
 |---|---|
-| `0` | 全部切片成功 |
-| `1` | 至少一次切片失敗（其他結果仍會寫進 CSV） |
-| `2` | 參數錯誤、找不到檔案或盤號不存在，沒有開始切片 |
-| `130` | 按了 Ctrl+C（正在跑的切片程序會被結束） |
+| `0` | Every slice succeeded |
+| `1` | At least one slice failed (the other results are still in the CSV) |
+| `2` | Invalid arguments, file not found or no such plate; nothing was sliced |
+| `130` | Ctrl+C (the running slicer process is stopped) |
 
-## 常見訊息
+## Common messages
 
-| 訊息 | 原因與處理 |
+| Message | Cause and fix |
 |---|---|
-| `參數錯誤：請用 --densities 或 --range 指定密度` | 沒有給 `-d` 或 `-r` |
-| `切片失敗：exit code -2（通常是命令列參數名稱或設定值無效）` | `-p` 或 `--set` 的名稱或值打錯 |
-| `逾時 300 秒，已結束切片程序` | 模型太複雜，用 `--timeout` 加長 |
-| `設定沒有套用（G-code 中為 …）` | 切片器沒有採用覆蓋值，該次結果不可信，已記為失敗 |
-| `警告：切片器已正常結束，但 Windows 沒能清除它的程序…` | 約 2～5% 的切片會發生，結果仍然有效；原因見[設計說明](design.md#切片器結束了卻清不掉) |
-| `警告：暫存資料夾 … 無法刪除` | 上面那種程序會佔住暫存資料夾，重新開機後即可刪除 |
-| `警告：切片程序寫出結果後 30 秒仍未結束，已強制結束` | 備援機制，結果仍然有效 |
-| `警告：3MF 中有物件／零件層級的 … 設定` | 某些物件在 GUI 中個別設定了填充，命令列覆蓋可能不會套用到它們 |
+| `invalid arguments: specify densities with --densities or --range` | Neither `-d` nor `-r` was given |
+| `slicing failed: exit code -2 (usually an invalid option name or value)` | A `-p` or `--set` name or value is misspelt |
+| `timed out after 300 s; slicer stopped` | The model is too complex; raise `--timeout` |
+| `setting was not applied (G-code has …)` | The slicer did not use the override; that result is not trustworthy and is recorded as failed |
+| `warning: the slicer exited normally but Windows could not tear its process down …` | Happens in about 2–5% of slices; the result is still valid. See the [design notes](design.md#a-slicer-that-exits-but-cannot-be-cleaned-up) |
+| `warning: temp folder … could not be deleted` | The process above keeps its temp folder; it can be deleted after a restart |
+| `warning: the slicer did not exit 30 s after writing its results and was stopped` | Fallback mechanism; the result is still valid |
+| `warning: the 3MF has a per-object/part …` | Some objects have their own infill settings in the GUI; the command-line override may not apply to them |

@@ -1,101 +1,106 @@
-# 設計說明
+# Design notes
 
-## 為什麼用命令列參數覆蓋，而不是修改 3MF
+**English** · [繁體中文](design.zh-TW.md)
 
-Bambu Studio 2.7.1.62 的 CLI 接受以設定鍵名覆蓋單一設定，優先順序高於 3MF 內嵌設定：
+## Why command-line overrides instead of editing the 3MF
+
+The Bambu Studio 2.7.1.62 CLI accepts single settings by key name, with higher priority than the settings embedded in the 3MF:
 
 ```
 bambu-studio --sparse-infill-density 10.5% --slice 1 --export-3mf out.gcode.3mf model.3mf
 ```
 
-實測結果（見 [bambu-cli-help.txt](bambu-cli-help.txt) 與 [verification.md](verification.md)）：
+Tested behaviour (see [bambu-cli-help.txt](bambu-cli-help.txt) and [verification.md](verification.md)):
 
-| 寫法 | 結果 |
+| Written as | Result |
 |---|---|
-| `--sparse-infill-density 3%`（連字號） | 成功，G-code 的 CONFIG 區塊為 `sparse_infill_density = 3%` |
-| `--sparse-infill-density 3`（不帶 %） | 成功，同上 |
-| `--sparse-infill-density 10.5%`（小數） | 成功 |
-| `--sparse-infill-pattern grid` | 成功 |
-| `--sparse_infill_density 3%`（底線） | 失敗，exit code -2，沒有任何輸出 |
-| 不存在的圖案名稱 | 失敗，exit code -2 |
+| `--sparse-infill-density 3%` (hyphens) | Works; the G-code CONFIG block reads `sparse_infill_density = 3%` |
+| `--sparse-infill-density 3` (no %) | Works, same as above |
+| `--sparse-infill-density 10.5%` (decimal) | Works |
+| `--sparse-infill-pattern grid` | Works |
+| `--sparse_infill_density 3%` (underscores) | Fails with exit code -2 and no output |
+| Unknown pattern name | Fails with exit code -2 |
 
-所以不需要複製並改寫 3MF 的 `project_settings.config`。其他設定都維持 3MF 內嵌值，
-也不必讀取 `%AppData%\BambuStudio` 中的預設檔。工具仍會先把 3MF 複製到輸出資料夾的 `_work/`
-再交給切片器，原始檔不會被碰到。
+So there is no need to copy and rewrite the 3MF's `project_settings.config`. Every other setting keeps its
+embedded value, and the presets in `%AppData%\BambuStudio` are never read. The tool still copies the 3MF into
+`_work/` in the output folder before handing it to the slicer, so the original is never touched.
 
-每次切片後，工具會從輸出 G-code 的 `; CONFIG_BLOCK` 讀回 `sparse_infill_density` /
-`sparse_infill_pattern`，和要求的值不符時就把該次標為失敗，不會默默用錯誤的設定。
+After every slice the tool reads `sparse_infill_density` / `sparse_infill_pattern` back from the output G-code's
+`; CONFIG_BLOCK`; if they differ from what was requested the slice is marked as failed instead of silently using
+the wrong settings.
 
-## 為什麼自己解析 G-code
+## Why parse the G-code
 
-切片器只在 `result.json` 和 G-code 標頭提供總重量與總時間。各走線類型的用量要自己從 G-code 算：
+The slicer reports only total weight and total time (in `result.json` and the G-code header). Per-line-type usage has to be computed from the G-code:
 
-- 依 `; FEATURE: <類型>` 註解分段。
-- 只計算「有 X/Y/Z 移動且 E 增加」的指令；純 E 指令（回抽、回抽補償、沖刷）不計入任何類型。
-  這和 GUI 的 GCodeProcessor 一致：起始 G-code 中帶 XY 的劃線 30.04 mm 正好是 GUI 的「自定義 0.09 g」。
-- 支援 `M82` / `M83` / `G92`，以及 `G2` / `G3` 圓弧。
-- 重量 = 長度 × π × (線徑/2)² × 密度。線徑與密度從切片後 3MF 的 `filament_diameter`、
-  `filament_density` 讀取，不寫死。
-- `Floating vertical shell` 是 G-code 中的獨立類型，但 GUI「走線類型」沒有這一列；
-  它的用量加上 `Internal solid infill` 正好等於 GUI 的「內部實心填充」，所以併入該類。
+- Split by the `; FEATURE: <type>` comments.
+- Count only moves that travel in X/Y/Z *and* advance E; pure E moves (retract, unretract, purge) belong to no type.
+  This matches the GUI's GCodeProcessor: the 30.04 mm XY purge line in the start G-code is exactly the GUI's "Custom 0.09 g".
+- `M82` / `M83` / `G92` and `G2` / `G3` arcs are handled.
+- Weight = length × π × (diameter / 2)² × density, with diameter and density read from the sliced 3MF's
+  `filament_diameter` and `filament_density`, not hard-coded.
+- `Floating vertical shell` is its own type in the G-code, but the GUI "Line type" legend has no such row;
+  its usage plus `Internal solid infill` equals the GUI's "Internal solid infill", so it is merged into that type.
 
-各類型的加總長度與 G-code 標頭的 `total filament length` 完全一致；若不一致，工具會發出警告。
+The per-type lengths add up exactly to the G-code header's `total filament length`; the tool warns if they do not.
 
-## 程序管理與逾時
+## Process handling and timeouts
 
-- 一次只啟動一個 `bambu-studio.exe`，逾時預設 300 秒。
-- `bambu-studio.exe` 會附加到**父程序**的主控台並把記錄（`[trace]`、`ZFiller: …` 等）寫在那裡，
-  重新導向 stdout/stderr、`DETACHED_PROCESS`、`CREATE_NO_WINDOW`、`CREATE_NEW_CONSOLE` 都擋不住；
-  `--debug 0` 也還會留下一行。所以工具先啟動一個擁有隱藏主控台的極小 Python 輔助程序，
-  再由它啟動切片器並原樣傳回結束代碼，記錄就只會寫進那個看不見的主控台。
-- 等待方式是有期限的輪詢，不會無限等待。逾時就用 `taskkill /F /T` 結束整個程序樹，
-  並確認程序已經結束。
-- 切片器會把 `result.json` 寫到目前工作目錄，所以每次切片都在自己的 `_work/<組合>/` 目錄中執行，
-  結束後刪除。
+- Only one `bambu-studio.exe` runs at a time; the default timeout is 300 s.
+- `bambu-studio.exe` attaches to its **parent's** console and writes its log there (`[trace]`, `ZFiller: …`, …).
+  Redirecting stdout/stderr, `DETACHED_PROCESS`, `CREATE_NO_WINDOW` and `CREATE_NEW_CONSOLE` do not stop it, and
+  `--debug 0` still leaves one line. So the tool starts a tiny Python helper that owns a hidden console, and the
+  helper starts the slicer and passes its exit code through; the log only reaches that invisible console.
+- Waiting is a deadline-bound poll, never an unbounded wait. On timeout the whole process tree is killed with
+  `taskkill /F /T` and the exit is confirmed.
+- The slicer writes `result.json` to its current directory, so every slice runs in its own `_work/<combination>/`
+  folder, which is deleted afterwards.
 
-## 切片器「結束了卻清不掉」
+## A slicer that exits but cannot be cleaned up
 
-約 2～5% 的切片會發生：Bambu Studio 完成工作並以結束代碼 0 正常退出，但 Windows 無法完成清除這個程序。
+In about 2–5% of slices Bambu Studio finishes its work and exits normally with code 0, but Windows cannot finish tearing the process down.
 
-**實測**（重複切片葉片模型，共 290 次）：
+**Measurements** (the blade model sliced repeatedly, 290 slices in total):
 
-| 啟動方式 | 切片次數 | 發生次數 |
+| Launch method | Slices | Occurrences |
 |---|---|---|
-| 直接啟動 bambu-studio.exe | 50 | 2 |
-| 透過隱藏主控台的輔助程序 | 110 | 1 |
-| 輔助程序＋輪詢讀取 `result.json`（工具的做法） | 50 | 2 |
-| 完成後的工具，密度 1%～80% | 80 | 4 |
+| bambu-studio.exe started directly | 50 | 2 |
+| Through the hidden-console helper | 110 | 1 |
+| Helper + polling `result.json` (what the tool does) | 50 | 2 |
+| The finished tool, densities 1%–80% | 80 | 4 |
 
-三種啟動方式都會發生，所以和工具的寫法無關。發生時的狀態都一樣：
+It happens with every launch method, so it is not caused by how the tool starts the slicer. The state is always the same:
 
-- `GetExitCodeProcess` 已經回傳 0（切片器自己正常結束了），但程序物件始終沒有變成 signaled，
-  一般的等待會永遠等下去。等 90 秒也不會自己好。
-- 只剩 1 個執行緒，狀態 `Wait / UserRequest`，起始位址已經讀不到；`taskkill /F` 回報
-  「沒有執行中的執行個體」，強制結束也沒有用。
-- 程序仍握著它開啟的檔案與工作目錄，所以 `out.gcode.3mf` 和整個 `_work/<組合>/` 都刪不掉，
-  直到重新開機。
+- `GetExitCodeProcess` already returns 0 (the slicer exited normally), but the process object never becomes
+  signalled, so a plain wait blocks forever. Waiting 90 s does not help.
+- One thread remains, in state `Wait / UserRequest`, and its start address can no longer be read; `taskkill /F`
+  reports that there is no running instance, and killing has no effect.
+- The process still holds its open files and working directory, so `out.gcode.3mf` and the whole
+  `_work/<combination>/` folder cannot be deleted until a restart.
 
-**推測原因**：執行緒卡在核心或驅動程式中。每次發生時，程序都載入了 NVIDIA OpenGL 驅動
-（`nvoglv64.dll`）和 NVIDIA 錄影／覆蓋層的擷取模組（`nvspcap64.dll`）。Bambu Studio 即使在 CLI 模式也會在
-啟動時載入 OpenGL（用來產生預覽縮圖），試過的 CLI 參數都無法避免（`--skip-useless-pick`、`--min-save`
-在 2.7.1.62 會直接讓切片失敗）。要證實需要核心除錯器，這裡沒有做到；暫時關閉 NVIDIA 的遊戲內覆蓋層再測試，
-可以作為進一步驗證。
+**Probable cause**: the thread is stuck in the kernel or a driver. Every time, the process had loaded the NVIDIA
+OpenGL driver (`nvoglv64.dll`) and the NVIDIA capture/overlay module (`nvspcap64.dll`). Bambu Studio loads OpenGL at
+start-up even in CLI mode (for the preview thumbnails), and none of the CLI options tried avoid it
+(`--skip-useless-pick` and `--min-save` make slicing fail in 2.7.1.62). Proving it would need a kernel debugger, which
+was not done here; temporarily turning off the NVIDIA in-game overlay and testing again would be a further check.
 
-**工具的處理**：
+**What the tool does about it**:
 
-- 輔助程序 [slicer_sweep/_launch.py](../slicer_sweep/_launch.py) 偵測到「已有結束代碼但程序物件未完成」持續
-  2 秒，就視為這種狀況，傳回切片器的結束代碼並留下標記檔。結果照常使用（`result.json` 成功且 ZIP 完整），
-  終端機顯示一則警告，這次切片只多花約 2 秒。
-- `--keep` 時輸出檔仍被鎖住、無法搬移，改用複製。
-- 掃描結束時若 `_work/` 刪不掉，顯示提示：重新開機後即可刪除。
-- 原本的 30 秒寬限（`result.json` 出現後 30 秒仍未結束就強制結束）保留作為備援。
+- The helper [slicer_sweep/_launch.py](../slicer_sweep/_launch.py) treats "exit code set but process object not
+  finished" lasting 2 seconds as this case: it returns the slicer's exit code and leaves a marker file. The result
+  is used as usual (when `result.json` reports success and the ZIP is complete), a warning is printed, and the
+  slice only takes about 2 s longer.
+- With `--keep`, the output file is still locked and cannot be moved, so it is copied instead.
+- If `_work/` cannot be deleted at the end of the sweep, a message says it can be deleted after a restart.
+- The original 30-second grace period (stop the slicer if it has not exited 30 s after `result.json` appears) stays as a fallback.
 
-## 為什麼 CLI 的 `--help` 要特別擷取
+## Why `--help` needs special capturing
 
-`bambu-studio.exe` 把 CLI 文字直接寫到主控台，重新導向 stdout/stderr 什麼都拿不到。
-[tools/capture_console.py](../tools/capture_console.py) 會在隱藏的新主控台中執行指令，再讀取主控台緩衝區。
+`bambu-studio.exe` writes its CLI text straight to the console, so redirecting stdout/stderr captures nothing.
+[tools/capture_console.py](../tools/capture_console.py) runs the command in a hidden new console and reads the console buffer.
 
-## 數值處理
+## Numbers
 
-密度清單和範圍用 `Decimal` 計算，`--range 5 6 0.1` 會得到剛好 11 個值，不會有浮點誤差造成漏掉終點。
-「最少用料／最短時間」以 CSV 顯示的精度（0.01 g、1 秒）比較，並列時全部標出。
+Density lists and ranges use `Decimal`, so `--range 5 6 0.1` yields exactly 11 values and floating-point error never
+drops the end value. "Least filament" and "shortest time" are compared at the precision shown in the CSV (0.01 g, 1 s),
+and ties are all marked.

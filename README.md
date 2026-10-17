@@ -94,7 +94,7 @@ python -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout
 The output folder contains `sweep.csv` (one row per slice) and `summary.txt` (the terminal summary table); with `--keep` it also holds each `.gcode.3mf`.
 Exit code is 0 when every slice succeeds, 1 when any slice fails, 2 for invalid arguments.
 
-The full guide (density syntax, pattern names, decimal densities, error messages) is in **[docs/usage.md](docs/usage.md)** (Traditional Chinese).
+The full guide (density syntax, pattern names, decimal densities, error messages) is in **[docs/usage.md](docs/usage.md)**.
 
 <details>
 <summary>CSV columns</summary>
@@ -140,7 +140,7 @@ The CSV is written as UTF-8 with BOM so Excel opens it correctly.
 python -m unittest discover -s tests -t .
 ```
 
-Compare against GUI measurements (13 slices; regenerates [docs/verification.md](docs/verification.md)):
+Compare against GUI measurements (13 slices; regenerates [docs/verification.md](docs/verification.md) and its Traditional Chinese version):
 
 ```powershell
 python tools\verify_gui.py "input\model.3mf"
@@ -170,7 +170,7 @@ results/           sweep results
 
 ## 📚 Docs
 
-The docs are in Traditional Chinese.
+Each document also has a Traditional Chinese version (`*.zh-TW.md`).
 
 - [Usage guide](docs/usage.md): every option, pattern names, output and error messages
 - [Design notes](docs/design.md): why command-line overrides, how the G-code is converted, process handling
@@ -185,7 +185,7 @@ The docs are in Traditional Chinese.
 - If the 3MF has per-object or per-part infill settings, the command-line override may not apply to those objects (the tool warns)
 - Multi-filament 3MF: per-line-type weights all use the first filament's density and diameter (the total is still the slicer's correct value)
 - Times are the slicer's estimates, same as the GUI, not actual print times
-- In about 2-5% of slices the slicer exits normally but Windows cannot tear its process down (probably the graphics driver). Results are unaffected, but that slice's temp folder cannot be deleted until you restart; the tool tells you when this happens. See the [design notes](docs/design.md) (Traditional Chinese)
+- In about 2-5% of slices the slicer exits normally but Windows cannot tear its process down (probably the graphics driver). Results are unaffected, but that slice's temp folder cannot be deleted until you restart; the tool tells you when this happens. See the [design notes](docs/design.md#a-slicer-that-exits-but-cannot-be-cleaned-up)
 - Decimal densities (e.g. 10.5%) are honoured by the CLI, but the GUI may not accept the same value; to print one, use the `.gcode.3mf` kept with `--keep`
 
 ## License

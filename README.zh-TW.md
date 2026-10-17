@@ -6,7 +6,7 @@
 
 用 Bambu Studio CLI 對 3MF 自動掃描稀疏填充密度（與填充圖案），彙整用料、時間與各走線類型用量，找出最省料的設定。
 
-[使用說明](docs/usage.md) · [設計說明](docs/design.md) · [CLI 與 GUI 數據對照](docs/verification.md) · [葉片掃描結果](results/blade_gyroid_density_5-15/summary.txt)
+[使用說明](docs/usage.zh-TW.md) · [設計說明](docs/design.zh-TW.md) · [CLI 與 GUI 數據對照](docs/verification.zh-TW.md) · [葉片掃描結果](results/blade_gyroid_density_5-15/summary.txt)
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![Bambu Studio](https://img.shields.io/badge/Bambu%20Studio-2.7.1.62-00AE42)
@@ -42,7 +42,7 @@
 - 直接使用 3MF 內嵌的印表機／耗材／工藝設定，只以命令列參數覆蓋要掃描的值
 - 密度可用清單或範圍＋步長，支援小數（例如 `10.5`）
 - 可同時掃描多種填充圖案，也可用 `--set` 固定覆蓋其他設定
-- 依 G-code 的 `; FEATURE:` 計算各走線類型用量，換算方式與 GUI 一致（[對照結果](docs/verification.md)全部在 0.2% 以內）
+- 依 G-code 的 `; FEATURE:` 計算各走線類型用量，換算方式與 GUI 一致（[對照結果](docs/verification.zh-TW.md)全部在 0.2% 以內）
 - 輸出 CSV＋終端機摘要，標出總用料最少與時間最短的組合，並列出「稀疏填充＋橋接」
 - 每次切片後讀回 G-code 中的設定，確認覆蓋真的有套用
 
@@ -92,7 +92,7 @@ python -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout
 輸出資料夾中有 `sweep.csv`（每次切片一列）、`summary.txt`（與終端機相同的摘要表），加 `--keep` 時另有每次的 `.gcode.3mf`。
 全部成功時結束代碼為 0，有任何一次失敗為 1，參數錯誤為 2。
 
-完整說明（密度寫法、圖案名稱對照、小數密度注意事項、常見錯誤訊息）見 **[docs/usage.md](docs/usage.md)**。
+完整說明（密度寫法、圖案名稱對照、小數密度注意事項、常見錯誤訊息）見 **[docs/usage.zh-TW.md](docs/usage.zh-TW.md)**。
 
 <details>
 <summary>CSV 欄位說明</summary>
@@ -138,7 +138,7 @@ CSV 以 UTF-8（含 BOM）寫出，可直接用 Excel 開啟。
 python -m unittest discover -s tests -t .
 ```
 
-與 GUI 實測數據對照（會切 13 次，重新產生 [docs/verification.md](docs/verification.md)）：
+與 GUI 實測數據對照（會切 13 次，重新產生 [docs/verification.zh-TW.md](docs/verification.zh-TW.md) 與英文版）：
 
 ```powershell
 python tools\verify_gui.py "input\model.3mf"
@@ -168,9 +168,9 @@ results/           掃描結果
 
 ## 📚 文件
 
-- [使用說明](docs/usage.md)：所有參數、圖案名稱對照、輸出與錯誤訊息
-- [設計說明](docs/design.md)：為什麼用命令列覆蓋、G-code 怎麼換算、程序管理
-- [CLI 與 GUI 數據對照](docs/verification.md)
+- [使用說明](docs/usage.zh-TW.md)：所有參數、圖案名稱對照、輸出與錯誤訊息
+- [設計說明](docs/design.zh-TW.md)：為什麼用命令列覆蓋、G-code 怎麼換算、程序管理
+- [CLI 與 GUI 數據對照](docs/verification.zh-TW.md)
 - [Bambu Studio 2.7.1.62 `--help` 輸出](docs/bambu-cli-help.txt)
 
 ## ⚠️ 限制
@@ -181,7 +181,7 @@ results/           掃描結果
 - 若 3MF 中有物件／零件層級的填充設定，命令列覆蓋可能不會套用到該物件（工具會警告）
 - 多耗材的 3MF：各走線類型的重量一律用第 1 個耗材的密度與線徑換算（總用料仍是切片器的正確值）
 - 時間是切片器的估算值，與 GUI 相同，但不等於實際列印時間
-- 約 2～5% 的切片，切片器正常結束後 Windows 卻清不掉它的程序（推測與顯示卡驅動有關）。結果不受影響，但那次的暫存資料夾要重新開機後才能刪除，工具會提示。詳見[設計說明](docs/design.md#切片器結束了卻清不掉)
+- 約 2～5% 的切片，切片器正常結束後 Windows 卻清不掉它的程序（推測與顯示卡驅動有關）。結果不受影響，但那次的暫存資料夾要重新開機後才能刪除，工具會提示。詳見[設計說明](docs/design.zh-TW.md#切片器結束了卻清不掉)
 - 小數密度（例如 10.5%）CLI 會照實使用，但 GUI 中不一定能輸入同樣的值；要列印時請用 `--keep` 保留的 gcode.3mf
 
 ## 授權
