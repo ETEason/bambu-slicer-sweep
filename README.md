@@ -47,6 +47,7 @@
 ## 🚀 快速開始
 
 需求：Windows、Python 3.14、Bambu Studio 2.7（預設路徑 `C:\Program Files\Bambu Studio\bambu-studio.exe`）。只用標準函式庫，不需安裝套件；在專案資料夾中執行即可。
+以下範例假設 3MF 放在 `input\model.3mf`（`input\` 不會進 git），也可以直接給任何路徑。
 
 ```powershell
 python -m slicer_sweep "input\model.3mf" --range 5 15 1
