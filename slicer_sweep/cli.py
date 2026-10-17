@@ -153,6 +153,9 @@ def main(argv: list[str] | None = None) -> int:
         print("\n" + t("interrupted"), file=sys.stderr)
         return 130
 
+    if (out_dir / "_work").exists():
+        print(t("warning", text=t("work_left", path=out_dir / "_work")), file=sys.stderr)
+
     csv_path = out_dir / "sweep.csv"
     write_csv(results, csv_path)
     text = summary(results)

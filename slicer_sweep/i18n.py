@@ -88,6 +88,14 @@ MESSAGES: dict[str, tuple[str, str]] = {
                       "timed out after {timeout:g} s, and slicer PID {pid} did not exit within {wait} s"),
     "exit_hang": ("切片程序寫出結果後 {grace} 秒仍未結束，已強制結束",
                   "the slicer did not exit {grace} s after writing its results and was stopped"),
+    "exit_stuck": ("切片器已正常結束，但 Windows 沒能清除它的程序（推測與顯示卡驅動有關）；"
+                   "結果不受影響，但它的暫存資料夾要重新開機後才能刪除",
+                   "the slicer exited normally but Windows could not tear its process down "
+                   "(probably the graphics driver); results are fine, but its temp folder "
+                   "cannot be deleted until you restart"),
+    "work_left": ("暫存資料夾 {path} 無法刪除：仍被未清除的切片器程序佔用，重新開機後即可刪除",
+                  "temp folder {path} could not be deleted: it is held by a slicer process that "
+                  "Windows could not tear down; it can be deleted after a restart"),
     "exit_hang_unconfirmed": ("（PID {pid} 未確認結束）", " (PID {pid} not confirmed stopped)"),
     "slice_failed": ("切片失敗：exit code {code}", "slicing failed: exit code {code}"),
     "slice_failed_msg": ("，{msg}", ", {msg}"),

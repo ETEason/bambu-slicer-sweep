@@ -131,7 +131,7 @@ The CSV is written as UTF-8 with BOM so Excel opens it correctly.
 
 - The original 3MF is never modified: it is copied into `_work\` in the output folder before slicing, and the temporary files are removed afterwards
 - Nothing is read from `%AppData%\BambuStudio` or the install folder; all settings come from the 3MF
-- Only one slicer process runs at a time; on timeout the whole process tree is killed, and a slicer that has written its results but does not exit is killed after 30 seconds
+- Only one slicer process runs at a time; on timeout the whole process tree is killed, and a slicer whose process Windows cannot tear down is detected so the sweep carries on
 - Ctrl+C stops the running slicer process before exiting
 
 ## 🧪 Development
@@ -154,6 +154,7 @@ slicer_sweep/
   cli.py           command-line options, terminal summary table
   sweep.py         sweep loop, CSV, best-run selection
   bambu.py         runs bambu-studio.exe (timeout, process-tree kill)
+  _launch.py       hidden-console helper that starts the slicer and detects a stuck teardown
   sliced.py        reads the gcode.3mf: header, settings, filament density
   gcode_stats.py   sums extruded length per ; FEATURE: line type
   i18n.py          English / Traditional Chinese messages
@@ -184,7 +185,7 @@ The docs are in Traditional Chinese.
 - If the 3MF has per-object or per-part infill settings, the command-line override may not apply to those objects (the tool warns)
 - Multi-filament 3MF: per-line-type weights all use the first filament's density and diameter (the total is still the slicer's correct value)
 - Times are the slicer's estimates, same as the GUI, not actual print times
-- The slicer occasionally does not exit after writing its results; that slice then takes about 30 seconds longer
+- In about 2-5% of slices the slicer exits normally but Windows cannot tear its process down (probably the graphics driver). Results are unaffected, but that slice's temp folder cannot be deleted until you restart; the tool tells you when this happens. See the [design notes](docs/design.md) (Traditional Chinese)
 - Decimal densities (e.g. 10.5%) are honoured by the CLI, but the GUI may not accept the same value; to print one, use the `.gcode.3mf` kept with `--keep`
 
 ## License

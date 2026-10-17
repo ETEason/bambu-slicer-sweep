@@ -179,7 +179,11 @@ def run_sweep(model: Path, plate: int, densities: list[Decimal], patterns: list[
                 r.warnings = run.warnings + s.warnings
                 if keep:
                     dest = out_dir / f"{model.stem}_plate{plate}_{label}.gcode.3mf"
-                    shutil.move(run.output_3mf, dest)
+                    try:
+                        shutil.move(run.output_3mf, dest)
+                    except OSError:
+                        # Still held open by a slicer stuck in teardown: copy instead.
+                        shutil.copyfile(run.output_3mf, dest)
                     r.gcode_3mf = dest.name
             except (SliceError, OSError, KeyError, ValueError, zipfile.BadZipFile) as e:
                 r.status = "error"

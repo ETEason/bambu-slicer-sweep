@@ -20,10 +20,10 @@ POLL_S = 0.25
 
 # bambu-studio.exe attaches to its parent's console and writes its log there, so
 # stdout/stderr redirection and console creation flags do not silence it. It is
-# therefore started by this helper, which owns a hidden console of its own and
-# passes the slicer's exit code through.
-_HELPER = ("import subprocess, sys; rc = subprocess.call(sys.argv[1:]); "
-           "sys.exit(rc - 2**32 if rc >= 2**31 else rc)")
+# therefore started by this helper, which owns a hidden console of its own,
+# passes the slicer's exit code through and detects a slicer stuck in teardown.
+_LAUNCHER = Path(__file__).with_name("_launch.py")
+_STUCK_MARKER = ".slicer_stuck"
 
 
 class SliceError(RuntimeError):
@@ -90,7 +90,8 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
     workdir.mkdir(parents=True, exist_ok=True)
     out = workdir / "out.gcode.3mf"
     result_path = workdir / "result.json"
-    for stale in (out, result_path):
+    marker = workdir / _STUCK_MARKER
+    for stale in (out, result_path, marker):
         stale.unlink(missing_ok=True)
 
     args = [str(exe)]
@@ -105,7 +106,7 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
     hidden = subprocess.STARTUPINFO()
     hidden.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     hidden.wShowWindow = 0  # SW_HIDE
-    proc = subprocess.Popen([sys.executable, "-I", "-c", _HELPER, *args], cwd=workdir,
+    proc = subprocess.Popen([sys.executable, "-I", str(_LAUNCHER), str(marker.resolve()), *args], cwd=workdir,
                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                             stderr=subprocess.DEVNULL, startupinfo=hidden,
                             creationflags=subprocess.CREATE_NEW_CONSOLE)
@@ -131,6 +132,8 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
             _kill_tree(proc)
         raise
     elapsed = time.monotonic() - start
+    if marker.exists():
+        warnings.append(t("exit_stuck"))
 
     result = _read_result(result_path) or {}
     if rc != 0 or result.get("return_code", 0) != 0:
