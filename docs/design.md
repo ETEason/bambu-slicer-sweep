@@ -29,6 +29,22 @@ After every slice the tool reads `sparse_infill_density` / `sparse_infill_patter
 `; CONFIG_BLOCK`; if they differ from what was requested the slice is marked as failed instead of silently using
 the wrong settings.
 
+## Per-object settings
+
+Bambu Studio lets individual objects (or parts) carry their own settings, stored in the 3MF's
+`Metadata/model_settings.config`. Test (2.7.1.62, a model with 8 objects, 6 of which have their own
+`sparse_infill_density`): slicing with `--sparse-infill-density 5%` and `20%` and splitting sparse infill per
+object with the G-code's `; start printing object, unique label id` markers gives:
+
+| Objects | Own setting | 5% | 20% |
+|---|---|---|---|
+| 2 objects without their own setting | — | 0.02 g, 0.10 g | 0.06 g, 0.18 g |
+| 6 objects with their own setting | 60% ×5, 10% ×1 | 0.30–0.65 g | **identical to 5%** |
+
+The command-line value only applies to objects without their own setting. So before slicing, the tool checks the
+objects and parts on the selected plate; if any of them sets a swept setting (or a `--set` setting) itself, it
+lists their names, ids and values and exits with code 2 without slicing.
+
 ## Why parse the G-code
 
 The slicer reports only total weight and total time (in `result.json` and the G-code header). Per-line-type usage has to be computed from the G-code:

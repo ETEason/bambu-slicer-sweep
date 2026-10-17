@@ -28,6 +28,21 @@ bambu-studio --sparse-infill-density 10.5% --slice 1 --export-3mf out.gcode.3mf 
 每次切片後，工具會從輸出 G-code 的 `; CONFIG_BLOCK` 讀回 `sparse_infill_density` /
 `sparse_infill_pattern`，和要求的值不符時就把該次標為失敗，不會默默用錯誤的設定。
 
+## 物件層級的個別設定
+
+Bambu Studio 允許在物件清單中替個別物件（或零件）指定參數，存在 3MF 的
+`Metadata/model_settings.config`。實測（2.7.1.62，一個 8 個物件的模型，其中 6 個物件有自己的
+`sparse_infill_density`）：分別以 `--sparse-infill-density 5%` 與 `20%` 切片，再依 G-code 的
+`; start printing object, unique label id` 標記分開計算每個物件的稀疏填充量：
+
+| 物件 | 個別設定 | 5% | 20% |
+|---|---|---|---|
+| 2 個沒有個別設定的物件 | — | 0.02 g、0.10 g | 0.06 g、0.18 g |
+| 6 個有個別設定的物件 | 60% ×5、10% ×1 | 0.30～0.65 g | **與 5% 完全相同** |
+
+命令列的值只會套用到沒有個別設定的物件。因此工具在切片前檢查選定盤上的物件與零件，
+只要有物件自己指定了要掃描的參數（或 `--set` 的參數），就列出物件名稱、id 與值，並以結束代碼 2 停止，不進行切片。
+
 ## 為什麼自己解析 G-code
 
 切片器只在 `result.json` 和 G-code 標頭提供總重量與總時間。各走線類型的用量要自己從 G-code 算：
