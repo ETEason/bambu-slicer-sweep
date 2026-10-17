@@ -44,6 +44,10 @@ bambu-studio --sparse-infill-density 10.5% --slice 1 --export-3mf out.gcode.3mf 
 ## 程序管理與逾時
 
 - 一次只啟動一個 `bambu-studio.exe`，逾時預設 300 秒。
+- `bambu-studio.exe` 會附加到**父程序**的主控台並把記錄（`[trace]`、`ZFiller: …` 等）寫在那裡，
+  重新導向 stdout/stderr、`DETACHED_PROCESS`、`CREATE_NO_WINDOW`、`CREATE_NEW_CONSOLE` 都擋不住；
+  `--debug 0` 也還會留下一行。所以工具先啟動一個擁有隱藏主控台的極小 Python 輔助程序，
+  再由它啟動切片器並原樣傳回結束代碼，記錄就只會寫進那個看不見的主控台。
 - 等待方式是有期限的輪詢，不會無限等待。逾時就用 `taskkill /F /T` 結束整個程序樹，
   並確認程序已經結束。
 - **切片器有時寫完輸出後不會自行結束**（開發期間約 70 次切片中出現 2 次，程序只剩一個執行緒在等待，`taskkill` 也回報找不到執行中的執行個體）。

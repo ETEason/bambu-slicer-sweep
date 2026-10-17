@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import time
 import zipfile
 from dataclasses import dataclass, field
@@ -16,6 +17,13 @@ DEFAULT_TIMEOUT_S = 300
 EXIT_GRACE_S = 30
 KILL_WAIT_S = 30
 POLL_S = 0.25
+
+# bambu-studio.exe attaches to its parent's console and writes its log there, so
+# stdout/stderr redirection and console creation flags do not silence it. It is
+# therefore started by this helper, which owns a hidden console of its own and
+# passes the slicer's exit code through.
+_HELPER = ("import subprocess, sys; rc = subprocess.call(sys.argv[1:]); "
+           "sys.exit(rc - 2**32 if rc >= 2**31 else rc)")
 
 
 class SliceError(RuntimeError):
@@ -94,9 +102,13 @@ def slice_plate(model_3mf: Path, plate: int, overrides: dict[str, str], workdir:
     start = time.monotonic()
     deadline = start + timeout_s
     result_seen_at = None
-    proc = subprocess.Popen(args, cwd=workdir, stdin=subprocess.DEVNULL,
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+    hidden = subprocess.STARTUPINFO()
+    hidden.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    hidden.wShowWindow = 0  # SW_HIDE
+    proc = subprocess.Popen([sys.executable, "-I", "-c", _HELPER, *args], cwd=workdir,
+                            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, startupinfo=hidden,
+                            creationflags=subprocess.CREATE_NEW_CONSOLE)
     try:
         while (rc := proc.poll()) is None:
             now = time.monotonic()
