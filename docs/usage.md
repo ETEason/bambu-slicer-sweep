@@ -3,18 +3,13 @@
 ## 基本語法
 
 ```powershell
-.venv\Scripts\python.exe -m slicer_sweep <3MF 路徑> <密度指定> [選項]
+python -m slicer_sweep <3MF 路徑> <密度指定> [選項]
 ```
 
 - `<3MF 路徑>`：要切片的 3MF。工具使用其中內嵌的印表機、耗材、工藝設定，只覆蓋你要掃描的值；原始檔不會被修改。
 - `<密度指定>`：必填，用 `-d` 或 `-r`（或兩者併用），見下一節。
 - 路徑含中文或空白時請加雙引號。
-
-第一次使用前先在專案資料夾建立虛擬環境（只需做一次）：
-
-```powershell
-py -3.14 -m venv .venv
-```
+- 請在專案資料夾中執行（`-m slicer_sweep` 從目前資料夾載入程式）。工具只用 Python 標準函式庫，不需安裝套件。
 
 ## 指定密度
 
@@ -36,7 +31,7 @@ py -3.14 -m venv .venv
 ## 掃描填充圖案
 
 ```powershell
-.venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic
+python -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic
 ```
 
 - `-p` 後面接逗號分隔的圖案名稱，每個圖案都會跑完所有密度（上例共 3 × 7 = 21 次切片）。
@@ -57,7 +52,7 @@ py -3.14 -m venv .venv
 ## 固定覆蓋其他設定
 
 ```powershell
-.venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" -d 10,11 --set wall_loops=3 --set top_shell_layers=5
+python -m slicer_sweep "input\model.3mf" -d 10,11 --set wall_loops=3 --set top_shell_layers=5
 ```
 
 `--set 設定鍵=值` 可以重複使用，所有切片都套用同樣的值。設定鍵就是 3MF 裡

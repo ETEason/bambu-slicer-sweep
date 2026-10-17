@@ -46,17 +46,16 @@
 
 ## 🚀 快速開始
 
-需求：Windows、Python 3.14、Bambu Studio 2.7（預設路徑 `C:\Program Files\Bambu Studio\bambu-studio.exe`）。只用標準函式庫，不需安裝套件。
+需求：Windows、Python 3.14、Bambu Studio 2.7（預設路徑 `C:\Program Files\Bambu Studio\bambu-studio.exe`）。只用標準函式庫，不需安裝套件；在專案資料夾中執行即可。
 
 ```powershell
-py -3.14 -m venv .venv
-.venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" --range 5 15 1
+python -m slicer_sweep "input\model.3mf" --range 5 15 1
 ```
 
 ## 📖 使用方式
 
 ```powershell
-.venv\Scripts\python.exe -m slicer_sweep <3MF 路徑> <密度指定> [選項]
+python -m slicer_sweep <3MF 路徑> <密度指定> [選項]
 ```
 
 `<密度指定>` 必填，用 `-d` 或 `-r`（可併用）。其餘都是選項：
@@ -77,13 +76,13 @@ py -3.14 -m venv .venv
 
 ```powershell
 # 指定幾個密度（可用小數）
-.venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" -d 3,10.5,11,13
+python -m slicer_sweep "input\model.3mf" -d 3,10.5,11,13
 
 # 8%～14% × 三種圖案（共 21 次），保留 gcode.3mf，輸出到指定資料夾
-.venv\Scripts\python.exe -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic --keep -o results\patterns
+python -m slicer_sweep "input\model.3mf" -r 8 14 1 -p gyroid,grid,cubic --keep -o results\patterns
 
 # 第 2 盤，牆數固定為 3，逾時改為 10 分鐘
-.venv\Scripts\python.exe -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout 600
+python -m slicer_sweep model.3mf --plate 2 -d 10,15 --set wall_loops=3 --timeout 600
 ```
 
 輸出資料夾中有 `sweep.csv`（每次切片一列）、`summary.txt`（與終端機相同的摘要表），加 `--keep` 時另有每次的 `.gcode.3mf`。
@@ -132,13 +131,13 @@ CSV 以 UTF-8（含 BOM）寫出，可直接用 Excel 開啟。
 ## 🧪 開發
 
 ```powershell
-.venv\Scripts\python.exe -m unittest discover -s tests -t .
+python -m unittest discover -s tests -t .
 ```
 
 與 GUI 實測數據對照（會切 13 次，重新產生 [docs/verification.md](docs/verification.md)）：
 
 ```powershell
-.venv\Scripts\python.exe tools\verify_gui.py "input\model.3mf"
+python tools\verify_gui.py "input\model.3mf"
 ```
 
 <details>
